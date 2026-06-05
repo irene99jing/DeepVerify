@@ -69,6 +69,12 @@ const state = {
     status: "全部状态",
     type: "全部报告类型",
   },
+  computeFilters: {
+    queryDraft: "",
+    query: "",
+    source: "全部来源",
+    status: "全部状态",
+  },
   selectedReportIds: [],
   deletedReportIds: [],
   activeReportId: "",
@@ -327,17 +333,17 @@ const navItems = [
     key: "reports",
     label: "验证报告",
     icon: "▤",
-    children: [{ key: "reports-list", label: "报告列表", route: "reports" }],
+    route: "reports",
   },
   {
     key: "assets",
     label: "AI资产管理",
     icon: "◫",
     children: [
-      { key: "assets-datasets", label: "数据集", route: "assets-datasets" },
       { key: "assets-models", label: "模型", route: "assets-models" },
-      { key: "assets-images", label: "镜像", route: "assets-images" },
       { key: "assets-operators", label: "算子", route: "assets-operators" },
+      { key: "assets-datasets", label: "数据集", route: "assets-datasets" },
+      { key: "assets-images", label: "镜像", route: "assets-images" },
     ],
   },
   { key: "compute", label: "算力资源", icon: "▣", route: "compute" },
@@ -347,12 +353,7 @@ const navItems = [
     label: "团队管理",
     icon: "◎",
     requiresTeamAdmin: true,
-    children: [
-      { key: "team-info", label: "团队信息", route: "team-info" },
-      { key: "team-members", label: "成员管理", route: "team-members" },
-      { key: "team-invites", label: "邀请管理", route: "team-invites" },
-      { key: "team-sharing", label: "资源共享管理", route: "team-sharing" },
-    ],
+    route: "team",
   },
 ];
 
@@ -451,7 +452,7 @@ function isNavItemVisible(item) {
 }
 
 function routeBelongsTo(routeName, item) {
-  if (item.route === routeName) return true;
+  if (item.route && routeAlias(item.route) === routeAlias(routeName)) return true;
   return Boolean(item.children?.some((child) => routeBelongsTo(routeName, child)));
 }
 
@@ -461,7 +462,8 @@ function renderNavTree(activeRoute) {
 
 function renderNavItem(item, activeRoute) {
   const hasChildren = Boolean(item.children?.length);
-  const isParentActive = routeBelongsTo(activeRoute, item) || parentRouteAliases(item.key).includes(activeRoute);
+  const activeAlias = routeAlias(activeRoute);
+  const isParentActive = routeBelongsTo(activeRoute, item) || parentRouteAliases(item.key).map(routeAlias).includes(activeAlias);
   const expanded = hasChildren && !state.sidebarCollapsed && (state.navExpanded[item.key] || isParentActive);
   const itemClass = `nav-link nav-parent ${isParentActive ? "active parent-active" : ""}`;
   const label = state.sidebarCollapsed ? "" : `<span class="nav-label">${item.label}</span>`;
@@ -486,9 +488,12 @@ function routeAlias(routeName) {
     "custom-report": "reports",
     "compute-detail": "compute",
     "compute-onboard": "compute",
-    "asset-detail": "assets-models",
-    "asset-review": "assets-models",
-    team: "team-info",
+    "asset-detail": assetRoutes[state.assetType] || "assets-datasets",
+    "asset-review": assetRoutes[state.assetType] || "assets-datasets",
+    "team-info": "team",
+    "team-members": "team",
+    "team-invites": "team",
+    "team-sharing": "team",
   };
   return aliases[routeName] || routeName;
 }
@@ -1842,16 +1847,57 @@ function customReportPage() {
   return shell(`${pageHead("自定义报告详情", "按所选指标范围与展示形式生成，可查看和导出下载。", `<button class="btn" onclick="setRoute('reports')">返回报告列表</button><button class="btn" onclick="toast('自定义报告已下载')">导出下载</button>`)}<div class="grid cols-2"><div class="card"><h3>指标卡</h3><div class="grid cols-2">${stat("模型指标", "4 项", "已选择")}${stat("芯片指标", "5 项", "已选择")}</div></div><div class="card"><h3>对比图</h3><div class="chart"><div class="bar" style="height:66%"></div><div class="bar" style="height:82%"></div><div class="bar" style="height:54%"></div></div></div></div>`, "reports");
 }
 
-function computePage() {
-  const visibleRows = computeRows.filter((row) => row[2] === "平台公共" || (isTeamWorkspace() ? row[2] === "团队资源" : row[2] === "个人接入"));
-  const sourceOptions = isTeamWorkspace()
+function computeSourceOptions() {
+  return isTeamWorkspace()
     ? ["全部来源", "平台公共", "团队资源"]
     : ["全部来源", "平台公共", "个人接入"];
+}
+
+function computeRowsForWorkspace() {
+  return computeRows.filter((row) => row[2] === "平台公共" || (isTeamWorkspace() ? row[2] === "团队资源" : row[2] === "个人接入"));
+}
+
+function normalizeComputeFilters() {
+  const sourceOptions = computeSourceOptions();
+  const statusOptions = computeStatusOptions();
+  if (!sourceOptions.includes(state.computeFilters.source)) state.computeFilters.source = "全部来源";
+  if (!statusOptions.includes(state.computeFilters.status)) state.computeFilters.status = "全部状态";
+}
+
+function computeStatusOptions() {
+  return ["全部状态", ...new Set(computeRowsForWorkspace().map((row) => row[5]))];
+}
+
+function filteredComputeRows() {
+  const filters = state.computeFilters;
+  const query = filters.query.trim().toLowerCase();
+  return computeRowsForWorkspace()
+    .filter((row) => filters.source === "全部来源" || row[2] === filters.source)
+    .filter((row) => filters.status === "全部状态" || row[5] === filters.status)
+    .filter((row) => !query || row.join(" ").toLowerCase().includes(query));
+}
+
+function setComputeFilter(key, value) {
+  state.computeFilters[key] = value;
+  render();
+}
+
+function applyComputeSearch() {
+  state.computeFilters.query = state.computeFilters.queryDraft.trim();
+  render();
+}
+
+function computePage() {
+  normalizeComputeFilters();
+  const filters = state.computeFilters;
+  const visibleRows = filteredComputeRows();
+  const sourceOptions = computeSourceOptions();
+  const statusOptions = computeStatusOptions();
   return shell(`
     ${pageHead("算力资源列表", "保持列表简洁，详情页展示完整连接、代理、审核和能力信息。", `<button class="btn primary" onclick="setRoute('compute-onboard')">接入自有算力</button>`)}
     <div class="card">
-      <div class="filters"><div class="input-group task-search"><input id="compute-search" onkeydown="if(event.key==='Enter'){event.preventDefault();applyTableSearch('compute-search','compute-table')}" placeholder="搜索资源名称 / ID" /><button class="btn" type="button" onclick="applyTableSearch('compute-search','compute-table')">搜索</button></div><select>${sourceOptions.map((item) => `<option>${item}</option>`).join("")}</select><select><option>全部状态</option><option>可调度</option><option>接入中</option><option>待审核</option><option>停用</option></select></div>
-      <div class="table-wrap"><table id="compute-table"><thead><tr><th>ID</th><th>资源名称</th><th>来源</th><th>芯片 / 资源类型</th><th>规格摘要</th><th>可调度状态</th><th>操作</th></tr></thead><tbody>${visibleRows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${statusBadge(r[5])}</td><td><button class="btn text" onclick="setRoute('compute-detail')">详情</button><button class="btn text" onclick="toast('连通性检测已触发')">检测</button><button class="btn text" onclick="confirmBox('确认停用该资源？')">停用</button></td></tr>`).join("")}</tbody></table></div>
+      <div class="filters"><div class="input-group task-search"><input id="compute-search" value="${filters.queryDraft}" oninput="state.computeFilters.queryDraft=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();applyComputeSearch()}" placeholder="搜索资源名称 / ID" /><button class="btn" type="button" onclick="applyComputeSearch()">搜索</button></div><select onchange="setComputeFilter('source',this.value)">${filterOptions(sourceOptions, filters.source)}</select><select onchange="setComputeFilter('status',this.value)">${filterOptions(statusOptions, filters.status)}</select></div>
+      <div class="table-wrap"><table id="compute-table"><thead><tr><th>ID</th><th>资源名称</th><th>来源</th><th>芯片 / 资源类型</th><th>规格摘要</th><th>可调度状态</th><th>操作</th></tr></thead><tbody>${visibleRows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${statusBadge(r[5])}</td><td><button class="btn text" onclick="setRoute('compute-detail')">详情</button><button class="btn text" onclick="toast('连通性检测已触发')">检测</button><button class="btn text" onclick="confirmBox('确认停用该资源？')">停用</button></td></tr>`).join("") || `<tr><td colspan="7"><div class="empty">暂无匹配的算力资源</div></td></tr>`}</tbody></table></div>
     </div>
   `, "compute");
 }
@@ -1894,7 +1940,7 @@ function assetsPage() {
       ${assetFiltersBar()}
       ${assetTable()}
     </div>
-  `, "assets");
+  `, assetRoutes[state.assetType] || "assets-datasets");
 }
 
 function assetTable() {
@@ -2039,17 +2085,22 @@ function accountPage() {
 
 function teamPage() {
   return shell(`
-    ${pageHead("团队管理", "仅团队拥有者或管理员可访问，包含团队信息、成员、邀请、资源共享和权限规则。")}
+    ${pageHead("团队管理", "管理团队基础信息、成员邀请与团队可用资源。")}
     <div class="grid">
       <div class="card"><h3>团队信息</h3><div class="grid cols-2"><div class="field"><label>团队名称</label><input value="浦鉴 Lab" /></div><div class="field"><label>团队描述</label><input value="软硬件全栈验证团队" /></div></div><button class="btn primary" onclick="toast('团队信息已保存')">保存</button></div>
       <div class="grid cols-2">
         <div class="card"><h3>成员管理</h3><table><tr><th>成员</th><th>角色</th><th>操作</th></tr><tr><td>jing</td><td>团队拥有者</td><td></td></tr><tr><td>lin</td><td>团队管理员</td><td><button class="btn text">修改角色</button></td></tr><tr><td>chen</td><td>团队成员</td><td><button class="btn text" onclick="confirmBox('确认移除该成员？')">移除</button></td></tr></table></div>
-        <div class="card"><h3>邀请管理</h3><div class="form"><div class="field"><label>手机号 / 邮箱 / 用户名</label><input value="new@deepverify.ai" /></div><div class="field"><label>角色</label><select><option>团队成员</option><option>团队管理员</option></select></div><button class="btn primary" onclick="toast('邀请已发送')">邀请成员</button><button class="btn" onclick="toast('邀请码已复制')">复制邀请码</button><button class="btn" onclick="toast('邀请码已重置')">重置邀请码</button></div></div>
-        <div class="card"><h3>资源共享管理</h3><p>查看团队可使用的模型、数据集、镜像和算子，管理协作范围。</p><button class="btn" onclick="setRoute('assets')">查看团队资产</button></div>
-        <div class="card"><h3>任务与报告权限</h3><p>团队成员可创建任务，查看授权范围内的任务和报告；管理员可管理成员、资源、任务和报告。</p></div>
+        <div class="card"><h3>邀请</h3><div class="form"><div class="field"><label>手机号 / 邮箱 / 用户名</label><input value="new@deepverify.ai" /></div><div class="field"><label>角色</label><select><option>团队成员</option><option>团队管理员</option></select></div><div class="permission"><strong>当前邀请码</strong><span class="badge blue" style="margin-left:8px">PJ-LAB-8K26</span></div><button class="btn primary" onclick="toast('邀请已发送')">邀请成员</button><button class="btn" onclick="toast('邀请码 PJ-LAB-8K26 已复制')">复制邀请码</button><button class="btn" onclick="toast('邀请码已重置')">重置邀请码</button></div></div>
+        <div class="card"><h3>资源共享管理</h3><p>查看团队可用的模型、数据集、镜像和算子。</p><button class="btn" onclick="showTeamAssets()">查看团队资产</button></div>
       </div>
     </div>
   `, "team");
+}
+
+function showTeamAssets() {
+  state.assetScope = "team";
+  state.assetType = "models";
+  setRoute("assets-models");
 }
 
 function externalJump(name) {
@@ -2179,6 +2230,9 @@ window.customReportModal = customReportModal;
 window.setAssetScope = setAssetScope;
 window.setAssetFilter = setAssetFilter;
 window.applyAssetSearch = applyAssetSearch;
+window.setComputeFilter = setComputeFilter;
+window.applyComputeSearch = applyComputeSearch;
+window.showTeamAssets = showTeamAssets;
 window.assetUploadModal = assetUploadModal;
 window.assetShareModal = assetShareModal;
 window.externalJump = externalJump;
