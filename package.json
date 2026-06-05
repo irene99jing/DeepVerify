@@ -1,0 +1,10 @@
+{
+  "name": "deepverify-html-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx --yes serve . -l 5174",
+    "start": "npx --yes serve . -l 5174"
+  },
+  "devDependencies": {}
+}
