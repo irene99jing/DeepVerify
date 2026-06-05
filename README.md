@@ -1,6 +1,6 @@
-# 浦鉴 HTML Prototype
+# DeepVerify
 
-基于《新版PRD_AI软硬件全栈能力验证平台.md》制作的可部署到 Vercel 的静态 HTML 原型。
+AI 软硬件全栈能力验证平台静态 HTML 原型，可部署到 Vercel。
 
 ## 本地预览
 
