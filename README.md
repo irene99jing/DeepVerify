@@ -1,6 +1,6 @@
 # DeepVerify
 
-AI 软硬件全栈能力验证平台静态 HTML 原型，可部署到 Vercel。
+AI 软硬件全栈能力验证平台静态 HTML 原型。
 
 ## 本地预览
 
