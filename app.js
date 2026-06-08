@@ -17,6 +17,14 @@ const state = {
     category: "全部分类",
     tag: "全部标签",
   },
+  imageAsset: {
+    scope: "public",
+    queryDraft: "",
+    query: "",
+    framework: "全部框架",
+    page: 1,
+    pageSize: 10,
+  },
   sidebarCollapsed: false,
   teamRole: localStorage.getItem("deepverify_team_role") || "team_admin",
   navExpanded: {
@@ -46,6 +54,13 @@ const state = {
     operatorCategory: "神经网络算子",
     operators: ["conv2d"],
     operatorQuery: "",
+    computeSource: "public",
+    computeSpecTab: "GPU",
+    computeVendor: "全部厂商",
+    computeSpec: "ecs.gn6e-c12g1.12xlarge",
+    pendingComputeSpec: "ecs.gn6e-c12g1.12xlarge",
+    imageVendor: "全部厂商",
+    imageFramework: "全部框架",
     execution: "standard",
     openPicker: "",
   },
@@ -77,6 +92,7 @@ const state = {
   },
   selectedReportIds: [],
   deletedReportIds: [],
+  activeTaskId: "",
   activeReportId: "",
   naturalParsed: null,
   taskTags: [
@@ -84,6 +100,13 @@ const state = {
     { key: "任务", value: "推理" },
     { key: "对比", value: "芯片" },
   ],
+  operatorTags: [
+    { key: "类型", value: "算子验证" },
+    { key: "算子", value: "单算子" },
+    { key: "目标", value: "性能稳定性" },
+    { key: "对比", value: "芯片" },
+  ],
+  tagEditTarget: "model",
   labelDraft: [],
 };
 
@@ -109,6 +132,19 @@ const assetRoutes = {
   images: "assets-images",
   operators: "assets-operators",
 };
+
+const imageAssetRows = [
+  { id: "IMG-PRESET-001", scope: "public", name: "pytorch-2.4-cuda12", version: "2.4", framework: "PyTorch", scenes: "模型训练 / 模型推理", resources: "NVIDIA GPU", status: "可用", updatedAt: "2026-05-28" },
+  { id: "IMG-PRESET-002", scope: "public", name: "tensorflow-2.16-gpu", version: "2.16", framework: "TensorFlow", scenes: "模型训练", resources: "NVIDIA GPU / CPU", status: "可用", updatedAt: "2026-05-22" },
+  { id: "IMG-PRESET-003", scope: "public", name: "mindspore-2.3-cann", version: "2.3", framework: "MindSpore", scenes: "模型训练 / 算子验证", resources: "昇腾 NPU", status: "可用", updatedAt: "2026-05-20" },
+  { id: "IMG-PRESET-004", scope: "public", name: "vllm-0.20.1", version: "0.20.1", framework: "VLLM", scenes: "模型推理", resources: "NVIDIA GPU / H20 集群", status: "维护中", updatedAt: "2026-06-01" },
+  { id: "IMG-PRESET-005", scope: "public", name: "sglang-0.4.8", version: "0.4.8", framework: "SGLANG", scenes: "模型推理", resources: "NVIDIA GPU", status: "可用", updatedAt: "2026-05-30" },
+  { id: "IMG-MY-001", scope: "mine", name: "qwen-runtime-custom", version: "v1.0", origin: "上传", framework: "PyTorch", scenes: "推理验证", tags: "大语言 / 推理", size: "18.6GB", description: "Qwen 推理验证环境", status: "可用", createdAt: "2026-05-18" },
+  { id: "IMG-MY-002", scope: "mine", name: "operator-cann-lab", version: "v0.8", origin: "上传", framework: "CANN", scenes: "算子验证", tags: "算子 / 昇腾", size: "12.4GB", description: "算子验证实验环境", status: "校验中", createdAt: "2026-06-03" },
+  { id: "IMG-MY-003", scope: "mine", name: "torch-train-copy", version: "v1.1", origin: "复制", framework: "PyTorch", scenes: "训练验证", tags: "训练 / 基线", size: "20.1GB", description: "基于预置镜像复制的训练环境", status: "可用", createdAt: "2026-06-01" },
+  { id: "IMG-TEAM-001", scope: "team", name: "team-pytorch-h20", version: "team-2026.04", origin: "团队上传", framework: "PyTorch", scenes: "推理验证", tags: "H20 / 团队", size: "21.8GB", description: "团队 H20 推理环境", status: "可用", createdAt: "2026-05-12" },
+  { id: "IMG-TEAM-002", scope: "team", name: "ascend-cann-8.0", version: "v2.0", origin: "成员共享", framework: "CANN", scenes: "算子验证", tags: "昇腾 / 算子", size: "15.2GB", description: "昇腾算子验证环境", status: "可用", createdAt: "2026-05-26" },
+];
 
 function isTeamWorkspace() {
   return state.workspace === "team";
@@ -256,6 +292,15 @@ const privateOperatorResources = [
   { id: "team-rmsnorm", source: "team", name: "RMSNorm-Team", category: "归一化算子", framework: "PyTorch", status: "接入中", reason: "算子包审核中" },
 ];
 
+const operatorPublicSpecs = [
+  { id: "ecs.gn6e-c12g1.12xlarge", type: "GPU", name: "ecs.gn6e-c12g1.12xlarge", accelerator: "4 * NVIDIA V100", memory: "4 * 32 GB", cpu: "48 vCPU", ram: "368 GiB" },
+  { id: "ecs.gn6e-c12g1.24xlarge", type: "GPU", name: "ecs.gn6e-c12g1.24xlarge", accelerator: "8 * NVIDIA V100", memory: "8 * 32 GB", cpu: "96 vCPU", ram: "736 GiB" },
+  { id: "ecs.gn6i-c16g1.4xlarge", type: "GPU", name: "ecs.gn6i-c16g1.4xlarge", accelerator: "1 * NVIDIA T4", memory: "1 * 16 GB", cpu: "16 vCPU", ram: "62 GiB" },
+  { id: "ecs.gn6i-c24g1.12xlarge", type: "GPU", name: "ecs.gn6i-c24g1.12xlarge", accelerator: "2 * NVIDIA T4", memory: "2 * 16 GB", cpu: "48 vCPU", ram: "186 GiB" },
+  { id: "ascend.npu.c8.4xlarge", type: "NPU", name: "ascend.npu.c8.4xlarge", accelerator: "4 * 昇腾 910B", memory: "4 * 64 GB HBM", cpu: "48 vCPU", ram: "384 GiB" },
+  { id: "kunlun.npu.p800.2xlarge", type: "NPU", name: "kunlun.npu.p800.2xlarge", accelerator: "2 * 昆仑芯 P800", memory: "2 * 64 GB HBM", cpu: "24 vCPU", ram: "192 GiB" },
+];
+
 function sourceLabel(source, kind) {
   const names = { model: "模型", dataset: "数据集", image: "镜像", operator: "算子" };
   return { public: "公共", mine: "我的", team: "团队" }[source] + names[kind];
@@ -365,9 +410,9 @@ const taskRows = [
 ];
 
 const reports = [
-  ["RPT-8801", "Qwen2.5 推理基础报告", "TASK-240601", "基础报告", "已生成", "Atlas 800T A2", "2026-06-01"],
-  ["RPT-8794", "算子稳定性自定义报告", "TASK-240528", "自定义报告", "已生成", "H20 集群", "2026-05-29"],
-  ["RPT-8780", "多模态选型智能分析", "TASK-240522", "智能分析报告", "生成中", "昇腾 910B", "2026-05-23"],
+  ["RPT-240601-1", "Qwen2.5 推理基础报告", "TASK-240601", "基础报告", "生成中", "Atlas 800T A2", "2026-06-01"],
+  ["RPT-240528-2", "FlashAttention 算子稳定性智能分析报告", "TASK-240528", "智能分析报告", "已生成", "H20 集群", "2026-05-29"],
+  ["RPT-240522-2", "语音识别延迟智能分析", "TASK-240522", "智能分析报告", "生成中", "昇腾 910B", "2026-05-23"],
 ];
 
 const computeRows = [
@@ -399,10 +444,17 @@ function statusBadge(status) {
     可用: "green",
     运行中: "blue",
     生成中: "blue",
+    维护中: "blue",
+    上传中: "blue",
+    校验中: "blue",
     待审核: "yellow",
     排队中: "yellow",
     失败: "red",
     不可用: "red",
+    上传失败: "red",
+    校验失败: "red",
+    已下线: "",
+    已停用: "",
   }[status] || "";
   return `<span class="badge ${color}">${status}</span>`;
 }
@@ -801,11 +853,17 @@ function taskRow(task) {
 }
 
 function taskActions(task) {
-  const actions = [`<button class="btn text" onclick="setRoute('task-detail')">详情</button>`];
+  const actions = [`<button class="btn text" onclick="openTaskDetail('${task.id}')">详情</button>`];
   if (task.status === "运行中") actions.push(`<button class="btn text" onclick="confirmBox('确认终止该任务？')">终止</button>`);
   if (task.status === "失败") actions.push(`<button class="btn text" onclick="toast('任务已重试')">重试</button>`);
   actions.push(`<button class="btn text" onclick="confirmDeleteTask('${task.id}')">删除</button>`);
   return actions.join("");
+}
+
+function openTaskDetail(id) {
+  state.activeTaskId = id;
+  state.lastCreatedTask = null;
+  setRoute("task-detail");
 }
 
 function setTaskFilter(key, value) {
@@ -949,7 +1007,7 @@ function operatorTaskCreatePage() {
           <h3>基础配置</h3>
           <div class="config-grid">
             <div class="field"><label>任务名称 <span class="required">*</span></label><input value="FlashAttention 算子稳定性验证" required /></div>
-            <div class="field"><label>标签</label>${tagField()}</div>
+            <div class="field"><label>标签</label>${tagField("operator")}</div>
           </div>
         </section>
 
@@ -961,9 +1019,10 @@ function operatorTaskCreatePage() {
 
         <section class="config-section">
           <h3>算力与镜像配置</h3>
-          ${resourcePicker("compute")}
+          ${operatorComputeSourceSelector()}
+          ${operatorComputePicker()}
           ${sourceSelector("image", "镜像来源", "imageSource")}
-          ${resourcePicker("image")}
+          ${operatorImagePicker()}
         </section>
 
         <section class="config-section">
@@ -1017,6 +1076,9 @@ function ensureOperatorTaskState() {
   }
   const validIds = operatorCandidates(false).map((item) => item.id);
   state.operatorTask.operators = state.operatorTask.operators.filter((id) => validIds.includes(id));
+  state.operatorTask.operators = state.operatorTask.operators.slice(0, 1);
+  const privateKeyForCompute = workspacePrivateScope().key;
+  if (!["public", privateKeyForCompute].includes(state.operatorTask.computeSource)) state.operatorTask.computeSource = "public";
 }
 
 function operatorSourceSelector() {
@@ -1032,14 +1094,12 @@ function operatorPicker() {
       </div>
       ${state.operatorTask.openPicker === "operator" ? operatorSelectPanel() : ""}
     </div>
-    ${selected.length ? `<div class="operator-chip-row">${operatorChips(selected)}</div>` : ""}
   </div>`;
 }
 
 function operatorSelectDisplay(items) {
   if (!items.length) return "请选择算子";
-  const names = items.slice(0, 3).map((item) => item.name).join("、");
-  return items.length > 3 ? `${names}、+${items.length - 3}` : names;
+  return items[0].name;
 }
 
 function operatorChips(items) {
@@ -1063,7 +1123,7 @@ function publicOperatorCascaderPanel() {
 
 function publicOperatorOption(item) {
   const selected = state.operatorTask.operators.includes(item.id);
-  return `<button type="button" class="image-option ${selected ? "selected" : ""}" onclick="toggleOperatorSelection('${item.id}')"><span>${item.name}</span><strong>${selected ? "✓" : ""}</strong></button>`;
+  return `<button type="button" class="image-option ${selected ? "selected" : ""}" onclick="chooseOperatorSelection('${item.id}')"><span>${item.name}</span><strong>${selected ? "✓" : ""}</strong></button>`;
 }
 
 function privateOperatorSearchPanel() {
@@ -1083,8 +1143,9 @@ function privateOperatorOption(item) {
   const text = `${item.name} ${item.category} ${item.framework}`;
   const query = state.operatorTask.operatorQuery.trim().toLowerCase();
   const visible = query && !text.toLowerCase().includes(query) ? `style="display:none"` : "";
-  return `<button type="button" data-search-row data-search-text="${text}" ${visible} class="select-table-row operator-table-row ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}" ${disabled ? "" : `onclick="toggleOperatorSelection('${item.id}')"`}>
-    <span>${item.name}${disabled ? `<em>${item.reason || item.status}</em>` : ""}</span><span>${item.category}</span><span>${item.framework}</span><span>${item.status}${selected ? `<strong> ✓</strong>` : ""}</span>
+  const reason = disabled ? item.reason || "依赖版本不匹配" : "";
+  return `<button type="button" data-search-row data-search-text="${text}" ${visible} title="${reason ? "当前算子依赖环境与所选镜像或算力资源不一致，请更换镜像/算力或重新校验算子。" : ""}" class="select-table-row operator-table-row ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}" ${disabled ? "" : `onclick="chooseOperatorSelection('${item.id}')"`}>
+    <span>${item.name}${disabled ? `<em>${reason}</em>` : ""}</span><span>${item.category}</span><span>${item.framework}</span><span>${disabled ? "不可用" : item.status}${selected ? `<strong> ✓</strong>` : ""}</span>
   </button>`;
 }
 
@@ -1120,14 +1181,252 @@ function toggleOperatorPicker() {
   render();
 }
 
-function toggleOperatorSelection(id) {
-  const list = state.operatorTask.operators;
-  state.operatorTask.operators = list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
+function chooseOperatorSelection(id) {
+  state.operatorTask.operators = [id];
+  state.operatorTask.openPicker = "";
   render();
 }
 
 function removeOperatorSelection(id) {
   state.operatorTask.operators = state.operatorTask.operators.filter((item) => item !== id);
+  render();
+}
+
+function operatorComputeSourceSelector() {
+  const privateScope = workspacePrivateScope();
+  const options = [
+    { key: "public", label: "公共资源" },
+    { key: privateScope.key, label: privateScope.key === "team" ? "团队资源" : "我的资源" },
+  ];
+  return `<div class="field"><label>算力资源来源 <span class="required">*</span></label><div class="choice-row">${options.map((item) => `<button type="button" class="choice-pill ${state.operatorTask.computeSource === item.key ? "active" : ""}" onclick="setOperatorComputeSource('${item.key}')">${item.label}</button>`).join("")}</div></div>`;
+}
+
+function operatorComputePicker() {
+  return `<div class="field resource-picker"><label>算力资源 <span class="required">*</span></label>
+    <div class="select-anchor">
+      <div role="button" tabindex="0" class="cloud-select-trigger ${state.operatorTask.openPicker === "operatorCompute" ? "open" : ""}" onclick="toggleOperatorComputePicker()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleOperatorComputePicker()}">
+        <span>${operatorComputeDisplay()}</span><strong>⌄</strong>
+      </div>
+      ${state.operatorTask.openPicker === "operatorCompute" ? operatorComputePanel() : ""}
+    </div>
+  </div>`;
+}
+
+function operatorComputeDisplay() {
+  if (state.operatorTask.computeSource === "public") {
+    const spec = operatorPublicSpecs.find((item) => item.id === state.operatorTask.computeSpec) || operatorPublicSpecs[0];
+    return `${spec.name}（${spec.cpu}，${spec.ram}，${spec.accelerator}）`;
+  }
+  const item = modelTaskResources.compute.find((row) => row.id === state.modelTask.compute);
+  return item ? `${item.name} / ${item.chip} / ${item.spec}` : "请选择算力资源";
+}
+
+function operatorComputePanel() {
+  return state.operatorTask.computeSource === "public" ? operatorPublicSpecPanel() : operatorPrivateComputePanel();
+}
+
+function operatorPublicSpecPanel() {
+  const specs = operatorPublicSpecs.filter((item) => item.type === state.operatorTask.computeSpecTab && (state.operatorTask.computeVendor === "全部厂商" || computeVendorForSpec(item) === state.operatorTask.computeVendor));
+  const selected = operatorPublicSpecs.find((item) => item.id === state.operatorTask.pendingComputeSpec) || operatorPublicSpecs[0];
+  return `<div class="cloud-select-panel operator-spec-panel">
+    <div class="operator-spec-tabs"><button type="button" class="${state.operatorTask.computeSpecTab === "GPU" ? "active" : ""}" onclick="setOperatorSpecTab('GPU')">GPU <span>80</span></button><button type="button" class="${state.operatorTask.computeSpecTab === "NPU" ? "active" : ""}" onclick="setOperatorSpecTab('NPU')">NPU <span>200</span></button></div>
+    <div class="select-search-row"><input data-dropdown-search="operatorSpec" placeholder="按规格名称搜索" /><button type="button" onclick="applyDropdownSearch('operatorSpec')">⌕</button><button type="button" onclick="clearDropdownSearch('operatorSpec')">↻</button></div>
+    <div class="select-filter-row compute-filter-row"><select onchange="setOperatorComputeVendor(this.value)">${filterOptions(operatorComputeVendorOptions(), state.operatorTask.computeVendor)}</select></div>
+    <div class="select-table">
+      <div class="select-table-head operator-spec-head"><span></span><span>规格名称</span><span>${state.operatorTask.computeSpecTab}</span><span>显存 / HBM</span><span>CPU</span><span>内存</span></div>
+      ${specs.map((spec) => operatorSpecRow(spec)).join("")}<div class="empty dropdown-empty" style="display:none">暂无匹配规格</div>
+    </div>
+    <div class="operator-spec-footer"><span>已选择：<strong>${selected.name}</strong>（${selected.cpu}，${selected.ram}，${selected.accelerator}）</span><div class="row"><button class="btn primary" onclick="confirmOperatorSpec()">确定</button><button class="btn" onclick="cancelOperatorSpec()">取消</button></div></div>
+  </div>`;
+}
+
+function operatorSpecRow(spec) {
+  const selected = state.operatorTask.pendingComputeSpec === spec.id;
+  const text = `${spec.name} ${spec.accelerator} ${spec.memory} ${spec.cpu} ${spec.ram}`;
+  return `<button type="button" data-search-row data-search-text="${text}" class="select-table-row operator-spec-row ${selected ? "selected" : ""}" onclick="selectPendingOperatorSpec('${spec.id}')"><span><input type="radio" ${selected ? "checked" : ""} /></span><span>${spec.name}</span><span>${spec.accelerator}</span><span>${spec.memory}</span><span>${spec.cpu}</span><span>${spec.ram}</span></button>`;
+}
+
+function computeVendorForSpec(spec) {
+  const text = `${spec.name} ${spec.accelerator}`;
+  if (text.includes("NVIDIA")) return "NVIDIA";
+  if (text.includes("昇腾")) return "昇腾";
+  if (text.includes("昆仑")) return "昆仑芯";
+  if (text.includes("寒武")) return "寒武纪";
+  return "其他";
+}
+
+function operatorComputeVendorOptions() {
+  const vendors = operatorPublicSpecs.filter((item) => item.type === state.operatorTask.computeSpecTab).map(computeVendorForSpec);
+  return ["全部厂商", ...Array.from(new Set(vendors))];
+}
+
+function operatorPrivateComputePanel() {
+  const rows = modelTaskResources.compute.filter((item) => item.scope === state.operatorTask.computeSource && (state.operatorTask.computeVendor === "全部厂商" || item.chipVendor === state.operatorTask.computeVendor));
+  return `<div class="cloud-select-panel compute-panel">
+    <div class="select-search-row"><input data-dropdown-search="compute" value="${state.modelTaskFilters.compute.query}" placeholder="搜索资源名称、芯片名称或规格" /><button type="button" onclick="applyDropdownSearch('compute')">⌕</button><button type="button" onclick="clearDropdownSearch('compute')">↻</button></div>
+    <div class="select-filter-row compute-filter-row"><select onchange="setOperatorComputeVendor(this.value)">${filterOptions(operatorPrivateComputeVendorOptions(), state.operatorTask.computeVendor)}</select></div>
+    <div class="select-table">
+      <div class="select-table-head compute-table-head"><span>资源名称</span><span>规格</span><span>芯片</span></div>
+      ${rows.map(operatorPrivateComputeOption).join("")}<div class="empty dropdown-empty" style="display:none">没有匹配的资源</div>
+    </div>
+  </div>`;
+}
+
+function operatorPrivateComputeOption(item) {
+  const selected = state.modelTask.compute === item.id;
+  const disabled = item.status !== "可用";
+  const text = `${item.name} ${item.chip} ${item.spec} ${item.chipVendor}`;
+  const query = state.modelTaskFilters.compute.query.trim().toLowerCase();
+  const visible = query && !text.toLowerCase().includes(query) ? `style="display:none"` : "";
+  return `<button type="button" data-search-row data-search-text="${text}" ${visible} class="select-table-row compute-table-row ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}" ${disabled ? "" : `onclick="chooseOperatorCompute('${item.id}')"`}><span>${item.name}${disabled ? `<em>${item.reason || item.status}</em>` : ""}</span><span>${item.spec}</span><span>${item.chip}${selected ? `<strong> ✓</strong>` : ""}</span></button>`;
+}
+
+function operatorPrivateComputeVendorOptions() {
+  const vendors = modelTaskResources.compute.filter((item) => item.scope === state.operatorTask.computeSource).map((item) => item.chipVendor || "其他");
+  return ["全部厂商", ...Array.from(new Set(vendors))];
+}
+
+function operatorImagePicker() {
+  const item = selectedResource("image");
+  return `<div class="field resource-picker"><label>镜像 <span class="required">*</span></label>
+    <div class="select-anchor">
+      <div role="button" tabindex="0" class="cloud-select-trigger ${state.operatorTask.openPicker === "operatorImage" ? "open" : ""}" onclick="toggleOperatorImagePicker()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleOperatorImagePicker()}">
+        <span>${operatorImageDisplay(item)}</span><strong>⌄</strong>
+      </div>
+      ${state.operatorTask.openPicker === "operatorImage" ? operatorImagePanel() : ""}
+    </div>
+  </div>`;
+}
+
+function operatorImageDisplay(item) {
+  if (!item) return "请选择镜像";
+  const vendor = imageVendorFor(item);
+  return `${item.name} / ${aiFrameworkFor(item)} / ${vendor} / ${item.version}`;
+}
+
+function operatorImagePanel() {
+  const rows = operatorImageRows(false);
+  return `<div class="cloud-select-panel operator-image-panel">
+    <div class="select-search-row"><input data-dropdown-search="operatorImage" value="${state.modelTaskFilters.image.query}" placeholder="搜索镜像名称、AI 框架或版本" /><button type="button" onclick="applyDropdownSearch('operatorImage')">⌕</button><button type="button" onclick="clearDropdownSearch('operatorImage')">↻</button></div>
+    <div class="select-filter-row compute-filter-row"><select onchange="setOperatorImageFilter('imageVendor',this.value)">${filterOptions(["全部厂商", "NVIDIA", "昇腾", "昆仑芯", "寒武纪", "CPU"], state.operatorTask.imageVendor)}</select><select onchange="setOperatorImageFilter('imageFramework',this.value)">${filterOptions(["全部框架", "PyTorch", "TensorFlow", "MindSpore", "PaddlePaddle"], state.operatorTask.imageFramework)}</select></div>
+    <div class="select-table">
+      <div class="select-table-head operator-image-head"><span>镜像名称</span><span>版本</span><span>芯片厂商</span><span>AI 框架</span><span>运行环境</span><span>状态</span></div>
+      ${rows.map(operatorImageOption).join("")}<div class="empty dropdown-empty" style="display:none">没有匹配的镜像</div>
+    </div>
+  </div>`;
+}
+
+function operatorImageRows(applyQuery = true) {
+  const query = applyQuery ? state.modelTaskFilters.image.query.trim().toLowerCase() : "";
+  return modelTaskResources.images
+    .filter((item) => item.source === state.modelTask.imageSource)
+    .filter((item) => state.operatorTask.imageVendor === "全部厂商" || imageVendorFor(item) === state.operatorTask.imageVendor)
+    .filter((item) => state.operatorTask.imageFramework === "全部框架" || aiFrameworkFor(item) === state.operatorTask.imageFramework)
+    .filter((item) => !query || `${item.name} ${item.framework} ${item.version} ${item.env}`.toLowerCase().includes(query));
+}
+
+function imageVendorFor(item) {
+  const text = `${item.name} ${item.env} ${item.version}`.toLowerCase();
+  if (/cann|ascend|mindspore|昇腾/.test(text)) return "昇腾";
+  if (/kunlun|p800|昆仑/.test(text)) return "昆仑芯";
+  if (/mlu|寒武/.test(text)) return "寒武纪";
+  if (/cpu/.test(text)) return "CPU";
+  return "NVIDIA";
+}
+
+function aiFrameworkFor(item) {
+  const text = `${item.name} ${item.framework} ${item.env}`.toLowerCase();
+  if (/tensorflow/.test(text)) return "TensorFlow";
+  if (/mindspore|cann|ascend/.test(text)) return "MindSpore";
+  if (/paddle/.test(text)) return "PaddlePaddle";
+  return "PyTorch";
+}
+
+function operatorImageOption(item) {
+  const selected = state.modelTask.image === item.id;
+  const disabled = item.status !== "可用";
+  const vendor = imageVendorFor(item);
+  const aiFramework = aiFrameworkFor(item);
+  const text = `${item.name} ${item.version} ${vendor} ${aiFramework} ${item.env} ${item.status}`;
+  const query = state.modelTaskFilters.image.query.trim().toLowerCase();
+  const visible = query && !text.toLowerCase().includes(query) ? `style="display:none"` : "";
+  return `<button type="button" data-search-row data-search-text="${text}" ${visible} class="select-table-row operator-image-row ${selected ? "selected" : ""} ${disabled ? "disabled" : ""}" ${disabled ? "" : `onclick="chooseOperatorImage('${item.id}')"`}><span>${item.name}</span><span>${item.version}</span><span>${vendor}</span><span>${aiFramework}</span><span>${item.env}</span><span>${item.status}${selected ? `<strong> ✓</strong>` : ""}</span></button>`;
+}
+
+function setOperatorComputeSource(source) {
+  state.operatorTask.computeSource = source;
+  state.operatorTask.computeVendor = "全部厂商";
+  state.operatorTask.openPicker = "operatorCompute";
+  if (source === "public") {
+    state.operatorTask.pendingComputeSpec = state.operatorTask.computeSpec;
+  } else {
+    const first = modelTaskResources.compute.find((item) => item.scope === source && item.status === "可用");
+    if (first) state.modelTask.compute = first.id;
+  }
+  render();
+}
+
+function toggleOperatorComputePicker() {
+  state.operatorTask.openPicker = state.operatorTask.openPicker === "operatorCompute" ? "" : "operatorCompute";
+  state.modelTask.openPicker = "";
+  render();
+}
+
+function setOperatorSpecTab(tab) {
+  state.operatorTask.computeSpecTab = tab;
+  state.operatorTask.computeVendor = "全部厂商";
+  const first = operatorPublicSpecs.find((item) => item.type === tab);
+  if (first) state.operatorTask.pendingComputeSpec = first.id;
+  render();
+}
+
+function setOperatorComputeVendor(vendor) {
+  state.operatorTask.computeVendor = vendor;
+  state.operatorTask.openPicker = "operatorCompute";
+  if (state.operatorTask.computeSource === "public") {
+    const first = operatorPublicSpecs.find((item) => item.type === state.operatorTask.computeSpecTab && (vendor === "全部厂商" || computeVendorForSpec(item) === vendor));
+    if (first) state.operatorTask.pendingComputeSpec = first.id;
+  }
+  render();
+}
+
+function selectPendingOperatorSpec(id) {
+  state.operatorTask.pendingComputeSpec = id;
+  render();
+}
+
+function confirmOperatorSpec() {
+  state.operatorTask.computeSpec = state.operatorTask.pendingComputeSpec;
+  state.operatorTask.openPicker = "";
+  render();
+}
+
+function cancelOperatorSpec() {
+  state.operatorTask.pendingComputeSpec = state.operatorTask.computeSpec;
+  state.operatorTask.openPicker = "";
+  render();
+}
+
+function chooseOperatorCompute(id) {
+  state.modelTask.compute = id;
+  state.operatorTask.openPicker = "";
+  render();
+}
+
+function toggleOperatorImagePicker() {
+  state.operatorTask.openPicker = state.operatorTask.openPicker === "operatorImage" ? "" : "operatorImage";
+  state.modelTask.openPicker = "";
+  render();
+}
+
+function setOperatorImageFilter(key, value) {
+  state.operatorTask[key] = value;
+  render();
+}
+
+function chooseOperatorImage(id) {
+  state.modelTask.image = id;
+  state.operatorTask.openPicker = "";
   render();
 }
 
@@ -1403,6 +1702,10 @@ function filteredResources(kind, applyQuery = true) {
 function liveDropdownSearch(kind, value) {
   if (kind === "operator") {
     state.operatorTask.operatorQuery = value;
+  } else if (kind === "operatorImage") {
+    state.modelTaskFilters.image.query = value;
+  } else if (kind === "operatorSpec") {
+    // Public operator specs use local DOM filtering only.
   } else {
     state.modelTaskFilters[kind].query = value;
   }
@@ -1414,6 +1717,10 @@ function clearDropdownSearch(kind) {
   const input = panel?.querySelector(".select-search-row input");
   if (kind === "operator") {
     state.operatorTask.operatorQuery = "";
+  } else if (kind === "operatorImage") {
+    state.modelTaskFilters.image.query = "";
+  } else if (kind === "operatorSpec") {
+    // Public operator specs use local DOM filtering only.
   } else {
     state.modelTaskFilters[kind].query = "";
   }
@@ -1460,11 +1767,12 @@ function executionSelector() {
   </div>`;
 }
 
-function tagField() {
-  const chips = state.taskTags.length
-    ? state.taskTags.map((tag) => `<span class="tag-chip">${tag.value ? `${tag.key}:${tag.value}` : tag.key}</span>`).join("")
+function tagField(target = "model") {
+  const tags = target === "operator" ? state.operatorTags : state.taskTags;
+  const chips = tags.length
+    ? tags.map((tag) => `<span class="tag-chip">${tag.value ? `${tag.key}:${tag.value}` : tag.key}</span>`).join("")
     : `<span class="muted">未绑定标签</span>`;
-  return `<button type="button" class="tag-editor-trigger" onclick="openTagModal()"><span class="tag-chip-row">${chips}</span><span title="编辑标签">✎</span></button>`;
+  return `<button type="button" class="tag-editor-trigger" onclick="openTagModal('${target}')"><span class="tag-chip-row">${chips}</span><span title="编辑标签">✎</span></button>`;
 }
 
 const tagDictionary = {
@@ -1472,10 +1780,16 @@ const tagDictionary = {
   任务: ["训练", "推理", "芯片对比"],
   项目: ["验收测试", "采购评估", "性能基线"],
   环境: ["生产", "测试", "实验室"],
+  类型: ["算子验证", "模型验证"],
+  算子: ["单算子", "公共算子", "自定义算子"],
+  目标: ["性能稳定性", "精度一致性", "兼容性"],
+  对比: ["芯片", "框架", "版本"],
 };
 
-function openTagModal() {
-  state.labelDraft = state.taskTags.length ? state.taskTags.map((tag) => ({ ...tag })) : [{ key: "", value: "" }];
+function openTagModal(target = "model") {
+  state.tagEditTarget = target;
+  const tags = target === "operator" ? state.operatorTags : state.taskTags;
+  state.labelDraft = tags.length ? tags.map((tag) => ({ ...tag })) : [{ key: "", value: "" }];
   renderTagModal();
 }
 
@@ -1518,7 +1832,7 @@ function removeTagDraft(index) {
 
 function confirmTags() {
   const seen = new Set();
-  state.taskTags = state.labelDraft
+  const nextTags = state.labelDraft
     .map((tag) => ({ key: tag.key.trim(), value: tag.value.trim() }))
     .filter((tag) => tag.key)
     .filter((tag) => {
@@ -1527,12 +1841,15 @@ function confirmTags() {
       seen.add(id);
       return true;
     });
+  if (state.tagEditTarget === "operator") state.operatorTags = nextTags;
+  else state.taskTags = nextTags;
   closeModal();
   render();
 }
 
 function taskCreated() {
   state.lastCreatedTask = { type: "模型验证", metrics: "模型验证指标 + 芯片指标", selectedScenario: currentModelScenario()?.name || "" };
+  state.activeTaskId = "";
   toast("任务已创建");
   setRoute("task-detail");
 }
@@ -1543,7 +1860,8 @@ function operatorTaskCreated() {
     toast("请至少选择一个算子");
     return;
   }
-  if (!state.modelTask.compute || !state.modelTask.image || !state.operatorTask.execution) {
+  const computeReady = state.operatorTask.computeSource === "public" ? Boolean(state.operatorTask.computeSpec) : Boolean(state.modelTask.compute);
+  if (!computeReady || !state.modelTask.image || !state.operatorTask.execution) {
     toast("请完成算力资源、镜像和执行方式配置");
     return;
   }
@@ -1552,26 +1870,75 @@ function operatorTaskCreated() {
     metrics: "算子验证指标 + 芯片指标",
     operators: selectedOperators().map((item) => item.name),
   };
+  state.activeTaskId = "";
   toast("任务已创建");
   setRoute("task-detail");
 }
 
 function taskDetailPage() {
-  const created = state.lastCreatedTask || { type: "模型验证" };
-  const subject = created.type === "算子验证" ? (created.operators || ["Conv2d"]).join("、") : "Qwen2.5-72B";
-  const datasetRow = created.type === "算子验证" ? "" : "<tr><th>数据集</th><td>C-Eval</td></tr>";
+  const task = taskRows.find((item) => item.id === state.activeTaskId);
+  const created = state.lastCreatedTask || null;
+  const detail = taskDetailData(task, created);
   return shell(`
     ${pageHead("任务详情", "展示配置摘要、调度状态、执行日志、指标与结果。", `<button class="btn" onclick="setRoute('tasks')">返回列表</button><button class="btn" onclick="toast('任务已重试')">重试</button><button class="btn danger" onclick="confirmBox('确认终止该任务？')">终止</button>`)}
     <div class="grid cols-2">
-      <div class="card"><h3>配置摘要</h3><table><tr><th>任务 ID</th><td>TASK-240601</td></tr><tr><th>任务类型</th><td>${created.type || "模型验证"}</td></tr><tr><th>模型 / 算子</th><td>${subject}</td></tr>${datasetRow}<tr><th>算力</th><td>Atlas 800T A2</td></tr><tr><th>镜像</th><td>pytorch-2.4-cuda12</td></tr><tr><th>默认指标</th><td>${created.metrics || "模型验证指标 + 芯片指标"}</td></tr></table></div>
-      <div class="card"><h3>调度状态</h3><div class="stepper"><div class="step done">排队中</div><div class="step done">资源分配</div><div class="step done">执行中</div><div class="step">结果回传</div><div class="step">报告生成</div></div><p class="muted">Agent 在线，最近心跳 12 秒前。</p></div>
-      <div class="card"><h3>执行日志</h3><pre>10:21 创建任务
-10:23 资源分配完成
-10:25 Agent 接收任务
-10:37 指标持续回传中</pre></div>
-      <div class="card"><h3>指标快照</h3><div class="chart"><div class="bar" style="height:82%"></div><div class="bar" style="height:64%"></div><div class="bar" style="height:74%"></div><div class="bar" style="height:53%"></div></div></div>
+      <div class="card"><h3>配置摘要</h3><table><tr><th>任务 ID</th><td>${detail.id}</td></tr><tr><th>任务类型</th><td>${detail.type}</td></tr><tr><th>${detail.subjectLabel}</th><td>${detail.subject}</td></tr>${detail.dataset ? `<tr><th>数据集</th><td>${detail.dataset}</td></tr>` : ""}<tr><th>算力</th><td>${detail.compute}</td></tr><tr><th>镜像</th><td>${detail.image}</td></tr><tr><th>执行方式</th><td>${detail.execution}</td></tr><tr><th>默认指标</th><td>${detail.metrics}</td></tr></table></div>
+      <div class="card"><h3>调度状态</h3>${taskScheduleSteps(detail.status)}<p class="muted">${detail.scheduleNote}</p><table><tr><th>调度队列</th><td>${detail.queue}</td></tr><tr><th>执行节点</th><td>${detail.node}</td></tr><tr><th>资源占用</th><td>${detail.usage}</td></tr><tr><th>报告产物</th><td>${detail.reportStatus}</td></tr></table></div>
+      <div class="card"><h3>执行日志</h3><pre>${detail.logs}</pre></div>
+      <div class="card"><h3>验证结果</h3><table>${detail.resultRows.map((row) => `<tr><th>${row[0]}</th><td>${row[1]}</td></tr>`).join("")}</table></div>
     </div>
   `, "tasks");
+}
+
+function taskDetailData(task, created) {
+  if (task?.id === "TASK-240528") {
+    return {
+      id: "TASK-240528",
+      type: "算子验证",
+      status: "已完成",
+      subjectLabel: "算子",
+      subject: "FlashAttention",
+      dataset: "",
+      compute: "H20 集群",
+      image: "team-pytorch-h20 / CUDA 12.4",
+      execution: "标准验证流程",
+      metrics: "算子验证指标 + 芯片指标",
+      scheduleNote: "任务已完成，调度、执行、结果回传与报告生成均已通过。",
+      queue: "operator-validation / high-throughput",
+      node: "h20-worker-03，16 卡 H20，CUDA 12.4",
+      usage: "8 卡，峰值显存 72GB / 卡，平均 GPU 利用率 91%",
+      reportStatus: "基础报告 RPT-240528-1 已生成，智能分析报告 RPT-240528-2 已生成",
+      logs: "17:36 创建任务并进入队列\n17:37 完成 H20 集群资源锁定\n17:39 拉取算子镜像并校验依赖版本\n17:43 完成 FlashAttention 单算子性能与稳定性验证\n17:46 指标与日志回传完成\n17:49 基础报告生成完成\n17:52 智能分析报告生成完成",
+      resultRows: [["吞吐表现", "较平台基线提升 8.6%，长序列场景收益明显"], ["稳定性", "连续 30 分钟压测无异常退出，P99 延迟波动 3.2%"], ["芯片适配", "H20 CUDA 12.4 环境依赖匹配，建议保留当前镜像作为团队基线"], ["结论", "验证通过，可用于后续模型推理链路验证"]],
+    };
+  }
+  const type = created?.type || task?.type || "模型验证";
+  const operators = created?.operators || (type === "算子验证" ? ["Conv2d"] : []);
+  return {
+    id: task?.id || "TASK-NEW",
+    type,
+    status: task?.status || "运行中",
+    subjectLabel: type === "算子验证" ? "算子" : "模型",
+    subject: type === "算子验证" ? operators.join("、") : "Qwen2.5-72B",
+    dataset: type === "算子验证" ? "" : "C-Eval",
+    compute: task?.compute || "Atlas 800T A2",
+    image: type === "算子验证" ? "pytorch-2.4-cuda12" : "pytorch-2.4-cuda12",
+    execution: task?.execution || "多 Agent",
+    metrics: created?.metrics || (type === "算子验证" ? "算子验证指标 + 芯片指标" : "模型验证指标 + 芯片指标"),
+    scheduleNote: task?.status === "已完成" ? "任务已完成，报告已生成。" : "Agent 在线，最近心跳 12 秒前。",
+    queue: "default-validation",
+    node: "worker-01",
+    usage: "资源占用持续回传中",
+    reportStatus: task?.status === "已完成" ? "基础报告已生成" : "基础报告生成中",
+    logs: "10:21 创建任务\n10:23 资源分配完成\n10:25 Agent 接收任务\n10:37 指标持续回传中",
+    resultRows: [["吞吐量", "18.2k tok/s"], ["P95 延迟", "38ms"], ["准确率", "92.6%"], ["能效比", "1.42 tokens/J"]],
+  };
+}
+
+function taskScheduleSteps(status) {
+  const steps = ["排队中", "资源分配", "执行中", "结果回传", "报告生成"];
+  const doneCount = status === "已完成" ? steps.length : status === "运行中" ? 3 : status === "失败" ? 3 : 1;
+  return `<div class="stepper">${steps.map((step, index) => `<div class="step ${index < doneCount ? "done" : ""}">${step}</div>`).join("")}</div>`;
 }
 
 function openNaturalDialog() {
@@ -1746,7 +2113,7 @@ function reportTable() {
 function allReportRows() {
   const extras = [
     { taskId: "TASK-240601", index: 2, name: "Qwen2.5 推理智能分析报告", type: "智能分析报告", status: "已生成", createdAt: "2026-06-01" },
-    { taskId: "TASK-240528", index: 2, name: "FlashAttention 算子稳定性自定义报告", type: "自定义报告", status: "已生成", createdAt: "2026-05-29" },
+    { taskId: "TASK-240528", index: 2, name: "FlashAttention 算子稳定性智能分析报告", type: "智能分析报告", status: "已生成", createdAt: "2026-05-29" },
     { taskId: "TASK-240522", index: 2, name: "语音识别延迟智能分析报告", type: "智能分析报告", status: "生成中", createdAt: "2026-05-23" },
   ];
   const baseRows = taskRows.map((task) => ({
@@ -1754,23 +2121,28 @@ function allReportRows() {
     name: `${task.name.replace(/验证$/, "")}基础报告`,
     taskId: task.id,
     type: "基础报告",
-    status: task.status === "排队中" || task.status === "运行中" ? "生成中" : "已生成",
+    status: baseReportStatusForTask(task),
     compute: task.compute,
     createdAt: task.createdAt.slice(0, 10),
   }));
   const extraRows = extras.map((report) => {
     const task = taskRows.find((item) => item.id === report.taskId);
+    const baseStatus = task ? baseReportStatusForTask(task) : "生成中";
     return {
       id: reportIdForTask(report.taskId, report.index),
       name: report.name,
       taskId: report.taskId,
       type: report.type,
-      status: report.status,
+      status: baseStatus === "已生成" ? report.status : "生成中",
       compute: task?.compute || "-",
       createdAt: report.createdAt,
     };
   });
   return [...baseRows, ...extraRows].filter((report) => !state.deletedReportIds.includes(report.id));
+}
+
+function baseReportStatusForTask(task) {
+  return task.status === "已完成" || task.status === "失败" ? "已生成" : "生成中";
 }
 
 function reportIdForTask(taskId, index) {
@@ -1925,7 +2297,180 @@ function computeOnboardPage() {
   `, "compute");
 }
 
+function imageAssetScopeOptions() {
+  return [
+    { key: "public", label: "预置镜像" },
+    { key: isTeamWorkspace() ? "team" : "mine", label: isTeamWorkspace() ? "团队镜像" : "我的镜像" },
+  ];
+}
+
+function normalizeImageAssetState() {
+  const validScopes = imageAssetScopeOptions().map((item) => item.key);
+  if (!validScopes.includes(state.imageAsset.scope)) state.imageAsset.scope = "public";
+  const maxPage = Math.max(1, Math.ceil(filteredImageAssets().length / state.imageAsset.pageSize));
+  if (state.imageAsset.page > maxPage) state.imageAsset.page = maxPage;
+  if (state.imageAsset.page < 1) state.imageAsset.page = 1;
+}
+
+function imagesAssetPage() {
+  normalizeImageAssetState();
+  const helper = isTeamWorkspace() ? "查看平台预置镜像，管理团队可用镜像。" : "查看平台预置镜像，管理你上传的自定义镜像。";
+  const scope = state.imageAsset.scope;
+  const canManage = scope === "mine" || (scope === "team" && canShowTeamManagement());
+  const action = canManage ? `<button class="btn primary" onclick="openImageUploadModal()">${scope === "team" ? "上传团队镜像" : "上传我的镜像"}</button>` : "";
+  return shell(`
+    ${pageHead("镜像", helper, action)}
+    <div class="card">
+      <div class="segmented asset-scope-tabs" style="margin-bottom:12px">${imageAssetScopeOptions().map((item) => `<button class="${scope === item.key ? "active" : ""}" onclick="setImageAssetScope('${item.key}')">${item.label}</button>`).join("")}</div>
+      ${imageAssetFilters()}
+      ${scope === "public" ? publicImageTable() : privateImageTable(scope)}
+      ${imageAssetPagination()}
+    </div>
+  `, "assets-images");
+}
+
+function imageAssetFilters() {
+  const filters = state.imageAsset;
+  return `<div class="filters"><select onchange="setImageAssetFilter('framework',this.value)">${filterOptions(imageFrameworkOptions(), filters.framework)}</select><div class="input-group task-search"><input value="${filters.queryDraft}" oninput="state.imageAsset.queryDraft=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();applyImageAssetSearch()}" placeholder="搜索镜像名称" /><button class="btn" type="button" onclick="applyImageAssetSearch()">搜索</button></div></div>`;
+}
+
+function imageFrameworkOptions() {
+  return ["全部框架", "PyTorch", "TensorFlow", "MindSpore", "CUDA", "CANN", "VLLM", "SGLANG"];
+}
+
+function imageRowsForCurrentScope() {
+  return imageAssetRows.filter((row) => row.scope === state.imageAsset.scope);
+}
+
+function filteredImageAssets() {
+  const { query, framework } = state.imageAsset;
+  const keyword = query.trim().toLowerCase();
+  return imageRowsForCurrentScope()
+    .filter((row) => framework === "全部框架" || row.framework === framework)
+    .filter((row) => !keyword || `${row.name} ${row.version} ${row.framework} ${row.scenes} ${row.tags || ""}`.toLowerCase().includes(keyword));
+}
+
+function pagedImageAssets() {
+  const start = (state.imageAsset.page - 1) * state.imageAsset.pageSize;
+  return filteredImageAssets().slice(start, start + state.imageAsset.pageSize);
+}
+
+function publicImageTable() {
+  const rows = pagedImageAssets();
+  return `<div class="table-wrap"><table><thead><tr><th>镜像名称</th><th>镜像版本</th><th>框架</th><th>适用场景</th><th>支持资源</th><th>状态</th><th>更新时间</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.name}</td><td>${row.version}</td><td>${row.framework}</td><td>${row.scenes}</td><td>${row.resources}</td><td>${statusBadge(row.status)}</td><td>${row.updatedAt}</td></tr>`).join("") || `<tr><td colspan="7"><div class="empty">暂无匹配的镜像</div></td></tr>`}</tbody></table></div>`;
+}
+
+function privateImageTable(scope) {
+  const rows = pagedImageAssets();
+  const canManage = scope === "mine" || (scope === "team" && canShowTeamManagement());
+  return `<div class="table-wrap"><table><thead><tr><th>镜像名称</th><th>镜像版本</th><th>来源</th><th>框架</th><th>适用场景</th><th>标签</th><th>镜像大小</th><th>镜像描述</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.name}</td><td>${row.version}</td><td>${row.origin}</td><td>${row.framework}</td><td>${row.scenes}</td><td>${row.tags}</td><td>${row.size}</td><td>${row.description}</td><td>${statusBadge(row.status)}</td><td>${row.createdAt}</td><td>${canManage ? imageAssetActions(row) : "-"}</td></tr>`).join("") || `<tr><td colspan="11"><div class="empty">暂无匹配的镜像</div></td></tr>`}</tbody></table></div>`;
+}
+
+function imageAssetActions(row) {
+  return `<button class="btn text" onclick="openImageEditModal('${row.id}')">编辑</button><button class="btn text" onclick="copyImageAsset('${row.id}')">复制</button><button class="btn text" onclick="confirmBox('删除后该镜像将无法继续用于新建验证任务，确认删除吗？','deleteImageAsset(\\'${row.id}\\')')">删除</button>`;
+}
+
+function imageAssetPagination() {
+  const total = filteredImageAssets().length;
+  const totalPages = Math.max(1, Math.ceil(total / state.imageAsset.pageSize));
+  return `<div class="pagination"><button class="btn" ${state.imageAsset.page <= 1 ? "disabled" : ""} onclick="setImageAssetPage(${state.imageAsset.page - 1})">上一页</button><span>第 ${state.imageAsset.page} / ${totalPages} 页</span><button class="btn" ${state.imageAsset.page >= totalPages ? "disabled" : ""} onclick="setImageAssetPage(${state.imageAsset.page + 1})">下一页</button><select onchange="setImageAssetPageSize(this.value)">${filterOptions(["10", "20", "50"], String(state.imageAsset.pageSize))}</select><span>条 / 页</span><input type="number" min="1" max="${totalPages}" value="${state.imageAsset.page}" onkeydown="if(event.key==='Enter'){event.preventDefault();setImageAssetPage(this.value)}" /><button class="btn" onclick="setImageAssetPage(this.previousElementSibling.value)">跳转</button></div>`;
+}
+
+function setImageAssetScope(scope) {
+  state.imageAsset.scope = scope;
+  state.imageAsset.queryDraft = "";
+  state.imageAsset.query = "";
+  state.imageAsset.framework = "全部框架";
+  state.imageAsset.page = 1;
+  render();
+}
+
+function setImageAssetFilter(key, value) {
+  state.imageAsset[key] = value;
+  state.imageAsset.page = 1;
+  render();
+}
+
+function applyImageAssetSearch() {
+  state.imageAsset.query = state.imageAsset.queryDraft.trim();
+  state.imageAsset.page = 1;
+  render();
+}
+
+function setImageAssetPage(page) {
+  state.imageAsset.page = Number(page) || 1;
+  render();
+}
+
+function setImageAssetPageSize(size) {
+  state.imageAsset.pageSize = Number(size) || 10;
+  state.imageAsset.page = 1;
+  render();
+}
+
+function openImageUploadModal() {
+  const scope = state.imageAsset.scope === "team" ? "team" : "mine";
+  const title = scope === "team" ? "上传团队镜像" : "上传我的镜像";
+  modalRoot.innerHTML = `<div class="modal-backdrop"><div class="modal form"><div class="row between"><h3>${title}</h3><button class="btn text" onclick="closeModal()">关闭</button></div><div class="field"><label>镜像名称 *</label><input id="image-upload-name" value="custom-runtime" /></div><div class="field"><label>镜像版本 *</label><input id="image-upload-version" value="v1.0" /></div><div class="field"><label>框架 *</label><select id="image-upload-framework"><option>PyTorch</option><option>TensorFlow</option><option>CUDA</option><option>CANN</option><option>VLLM</option><option>SGLANG</option></select></div><div class="field"><label>适用场景 *</label><input id="image-upload-scenes" value="推理验证" /></div><div class="field"><label>标签</label><input id="image-upload-tags" value="自定义 / 推理" /></div><div class="field"><label>镜像描述</label><textarea id="image-upload-description">用于验证任务的自定义镜像环境</textarea></div><div class="field"><label>镜像文件 / 镜像地址 *</label><input id="image-upload-address" value="registry.example.com/deepverify/custom-runtime:v1.0" /></div><button class="btn primary" onclick="submitImageUpload('${scope}')">提交校验</button></div></div>`;
+}
+
+function submitImageUpload(scope) {
+  const name = document.getElementById("image-upload-name").value.trim() || "custom-runtime";
+  imageAssetRows.push({
+    id: `IMG-${scope.toUpperCase()}-${Date.now()}`,
+    scope,
+    name,
+    version: document.getElementById("image-upload-version").value.trim() || "v1.0",
+    origin: scope === "team" ? "团队上传" : "上传",
+    framework: document.getElementById("image-upload-framework").value,
+    scenes: document.getElementById("image-upload-scenes").value.trim() || "推理验证",
+    tags: document.getElementById("image-upload-tags").value.trim() || "-",
+    size: "待校验",
+    description: document.getElementById("image-upload-description").value.trim() || "-",
+    status: "校验中",
+    createdAt: "2026-06-05",
+  });
+  closeModal();
+  toast("镜像已提交校验");
+  render();
+}
+
+function openImageEditModal(id) {
+  const row = imageAssetRows.find((item) => item.id === id);
+  if (!row) return;
+  modalRoot.innerHTML = `<div class="modal-backdrop"><div class="modal form"><div class="row between"><h3>编辑镜像</h3><button class="btn text" onclick="closeModal()">关闭</button></div><div class="field"><label>镜像名称</label><input id="image-edit-name" value="${row.name}" /></div><div class="field"><label>适用场景</label><input id="image-edit-scenes" value="${row.scenes}" /></div><div class="field"><label>标签</label><input id="image-edit-tags" value="${row.tags || ""}" /></div><div class="field"><label>镜像描述</label><textarea id="image-edit-description">${row.description || ""}</textarea></div><div class="permission">镜像版本、来源、框架、镜像大小和创建时间不可编辑。</div><button class="btn primary" onclick="saveImageEdit('${id}')">保存</button></div></div>`;
+}
+
+function saveImageEdit(id) {
+  const row = imageAssetRows.find((item) => item.id === id);
+  if (!row) return;
+  row.name = document.getElementById("image-edit-name").value.trim() || row.name;
+  row.scenes = document.getElementById("image-edit-scenes").value.trim() || row.scenes;
+  row.tags = document.getElementById("image-edit-tags").value.trim() || row.tags;
+  row.description = document.getElementById("image-edit-description").value.trim() || row.description;
+  closeModal();
+  toast("镜像信息已保存");
+  render();
+}
+
+function copyImageAsset(id) {
+  const row = imageAssetRows.find((item) => item.id === id);
+  if (!row) return;
+  imageAssetRows.push({ ...row, id: `IMG-COPY-${Date.now()}`, name: `${row.name}-copy`, origin: "复制", createdAt: "2026-06-05" });
+  toast("镜像已复制");
+  render();
+}
+
+function deleteImageAsset(id) {
+  const index = imageAssetRows.findIndex((item) => item.id === id);
+  if (index >= 0) imageAssetRows.splice(index, 1);
+  closeModal();
+  toast("镜像已删除");
+  render();
+}
+
 function assetsPage() {
+  if (state.assetType === "images") return imagesAssetPage();
   normalizeAssetScope();
   normalizeAssetFilters();
   const assetName = assetDisplayName();
@@ -2187,6 +2732,7 @@ window.applyTaskSearch = applyTaskSearch;
 window.applyTableSearch = applyTableSearch;
 window.toggleTaskSelection = toggleTaskSelection;
 window.toggleAllVisibleTasks = toggleAllVisibleTasks;
+window.openTaskDetail = openTaskDetail;
 window.confirmDeleteTask = confirmDeleteTask;
 window.confirmBulkDeleteTasks = confirmBulkDeleteTasks;
 window.deleteSelectedTasks = deleteSelectedTasks;
@@ -2213,8 +2759,19 @@ window.setImageCategory = setImageCategory;
 window.selectModelScenario = selectModelScenario;
 window.setOperatorTask = setOperatorTask;
 window.toggleOperatorPicker = toggleOperatorPicker;
-window.toggleOperatorSelection = toggleOperatorSelection;
+window.chooseOperatorSelection = chooseOperatorSelection;
 window.removeOperatorSelection = removeOperatorSelection;
+window.setOperatorComputeSource = setOperatorComputeSource;
+window.toggleOperatorComputePicker = toggleOperatorComputePicker;
+window.setOperatorSpecTab = setOperatorSpecTab;
+window.setOperatorComputeVendor = setOperatorComputeVendor;
+window.selectPendingOperatorSpec = selectPendingOperatorSpec;
+window.confirmOperatorSpec = confirmOperatorSpec;
+window.cancelOperatorSpec = cancelOperatorSpec;
+window.chooseOperatorCompute = chooseOperatorCompute;
+window.toggleOperatorImagePicker = toggleOperatorImagePicker;
+window.setOperatorImageFilter = setOperatorImageFilter;
+window.chooseOperatorImage = chooseOperatorImage;
 window.operatorTaskCreated = operatorTaskCreated;
 window.openTagModal = openTagModal;
 window.renderTagModal = renderTagModal;
@@ -2233,6 +2790,17 @@ window.applyAssetSearch = applyAssetSearch;
 window.setComputeFilter = setComputeFilter;
 window.applyComputeSearch = applyComputeSearch;
 window.showTeamAssets = showTeamAssets;
+window.setImageAssetScope = setImageAssetScope;
+window.setImageAssetFilter = setImageAssetFilter;
+window.applyImageAssetSearch = applyImageAssetSearch;
+window.setImageAssetPage = setImageAssetPage;
+window.setImageAssetPageSize = setImageAssetPageSize;
+window.openImageUploadModal = openImageUploadModal;
+window.submitImageUpload = submitImageUpload;
+window.openImageEditModal = openImageEditModal;
+window.saveImageEdit = saveImageEdit;
+window.copyImageAsset = copyImageAsset;
+window.deleteImageAsset = deleteImageAsset;
 window.assetUploadModal = assetUploadModal;
 window.assetShareModal = assetShareModal;
 window.externalJump = externalJump;
