@@ -25,6 +25,22 @@ const state = {
     page: 1,
     pageSize: 10,
   },
+  modelAsset: {
+    scope: "public",
+    queryDraft: "",
+    query: "",
+    scene: "全部场景",
+    capability: "全部功能",
+    minParams: "0",
+    maxParams: "2000",
+    minParamsDraft: "0",
+    maxParamsDraft: "2000",
+    paramPanelOpen: false,
+    tag: "全部标签",
+    page: 1,
+    pageSize: 10,
+  },
+  selectedPresetModelId: "",
   sidebarCollapsed: false,
   teamRole: localStorage.getItem("deepverify_team_role") || "team_admin",
   navExpanded: {
@@ -63,6 +79,14 @@ const state = {
     imageFramework: "全部框架",
     execution: "standard",
     openPicker: "",
+  },
+  operatorAsset: {
+    scope: "public",
+    queryDraft: "",
+    query: "",
+    category: "全部分类",
+    page: 1,
+    pageSize: 10,
   },
   modelTaskFilters: {
     model: { query: "", scene: "全部", support: "全部" },
@@ -146,6 +170,25 @@ const imageAssetRows = [
   { id: "IMG-TEAM-002", scope: "team", name: "ascend-cann-8.0", version: "v2.0", origin: "成员共享", framework: "CANN", scenes: "算子验证", tags: "昇腾 / 算子", size: "15.2GB", description: "昇腾算子验证环境", status: "可用", createdAt: "2026-05-26" },
 ];
 
+const modelAssetRows = [
+  { id: "MDL-PRESET-001", scope: "public", name: "DeepSeek-R1", scene: "大语言 / 推理增强", capability: "推理", provider: "DeepSeek", params: 671, updatedAt: "2026-05-30", description: "适合复杂推理、代码生成与知识问答验证。", hot: true },
+  { id: "MDL-PRESET-002", scope: "public", name: "Kimi-K2", scene: "大语言 / 长上下文", capability: "推理", provider: "Kimi", params: 1000, updatedAt: "2026-05-26", description: "面向长文本、多轮对话和文档理解场景。", hot: true },
+  { id: "MDL-PRESET-003", scope: "public", name: "Qwen2.5-72B", scene: "大语言 / 通用问答", capability: "训练 / 推理", provider: "通义千问", params: 72, updatedAt: "2026-05-20", description: "通用大语言模型，可用于吞吐、延迟和精度基线验证。", hot: true },
+  { id: "MDL-PRESET-004", scope: "public", name: "GLM-4.6", scene: "大语言 / 工具调用", capability: "训练 / 推理", provider: "智谱", params: 130, updatedAt: "2026-05-18", description: "适用于工具调用、知识问答和代码辅助验证。", hot: false },
+  { id: "MDL-PRESET-005", scope: "public", name: "Llama-3.1-70B", scene: "大语言 / 开源基线", capability: "推理", provider: "Meta", params: 70, updatedAt: "2026-05-16", description: "开源大模型基线，用于跨芯片推理能力对比。", hot: false },
+  { id: "MDL-PRESET-006", scope: "public", name: "CLIP-ViT-Large", scene: "多模态 / 图文检索", capability: "推理", provider: "OpenAI", params: 0.43, updatedAt: "2026-05-12", description: "图文匹配和多模态表示验证常用模型。", hot: false },
+  { id: "MDL-PRESET-007", scope: "public", name: "Whisper-Large-V3", scene: "音频 / 语音识别", capability: "推理", provider: "OpenAI", params: 1.55, updatedAt: "2026-05-10", description: "语音识别与音频转写场景验证模型。", hot: false },
+  { id: "MDL-PRESET-008", scope: "public", name: "AlphaFold-Science", scene: "科学计算 / 蛋白结构", capability: "推理", provider: "DeepMind", params: 93, updatedAt: "2026-05-08", description: "科学计算场景下的结构预测验证模型。", hot: false },
+  { id: "MDL-PRESET-009", scope: "public", name: "BGE-Reranker-Large", scene: "检索匹配 / 重排序", capability: "训练 / 推理", provider: "BAAI", params: 0.56, updatedAt: "2026-05-06", description: "适合检索、排序和召回链路验证。", hot: false },
+  { id: "MDL-PRESET-010", scope: "public", name: "Paraformer-Large", scene: "音频 / 语音识别", capability: "训练 / 推理", provider: "ModelScope", params: 0.23, updatedAt: "2026-05-04", description: "中文语音识别验证模型，可用于端到端延迟评估。", hot: false },
+  { id: "MDL-MY-001", scope: "mine", name: "PuJian-Lite", visible: "仅自己可见", owner: "jing", version: "v1.0.1", tags: "大语言 / 推理", createdAt: "2026-05-18" },
+  { id: "MDL-MY-002", scope: "mine", name: "Qwen2.5-7B-Finetune", visible: "仅自己可见", owner: "jing", version: "v0.9", tags: "大语言 / 训练", createdAt: "2026-05-24" },
+  { id: "MDL-MY-003", scope: "mine", name: "Private-Reranker-3B", visible: "仅自己可见", owner: "jing", version: "v2.1", tags: "检索匹配 / 推理", createdAt: "2026-05-29" },
+  { id: "MDL-TEAM-001", scope: "team", name: "VisionLab-VL", visible: "当前团队", owner: "lin", version: "team-v1.2", tags: "多模态 / 推理", createdAt: "2026-05-21" },
+  { id: "MDL-TEAM-002", scope: "team", name: "Team-Qwen2.5-32B", visible: "当前团队", owner: "jing", version: "team-r3", tags: "大语言 / 训练", createdAt: "2026-05-27" },
+  { id: "MDL-TEAM-003", scope: "team", name: "Team-DeepSeek-R1-Distill", visible: "当前团队", owner: "lin", version: "distill-32b", tags: "大语言 / 推理", createdAt: "2026-06-02" },
+];
+
 function isTeamWorkspace() {
   return state.workspace === "team";
 }
@@ -158,7 +201,7 @@ function workspacePrivateScope() {
 
 function assetScopeOptions() {
   return [
-    { key: "public", label: "公共资源", prefix: "公共" },
+    { key: "public", label: "预置资源", prefix: "预置" },
     workspacePrivateScope(),
   ];
 }
@@ -182,7 +225,7 @@ function workspaceAssetOptions(kind) {
   }[kind];
   const names = { model: "模型", dataset: "数据集", image: "镜像", operator: "算子" };
   return [
-    `公共${names[kind]} / ${samples.public}`,
+    `预置${names[kind]} / ${samples.public}`,
     `${scope.prefix}${names[kind]} / ${samples[scope.key]}`,
   ];
 }
@@ -195,35 +238,65 @@ function workspaceComputeOptions() {
 
 const modelTaskResources = {
   models: [
+    { id: "deepseek-v4-pro", source: "public", name: "DeepSeek-V4-Pro", scene: "大语言", support: "推理", version: "1600B / MoE", status: "可用" },
+    { id: "deepseek-v4-pro-fp8", source: "public", name: "DeepSeek-V4-Pro-FP8", scene: "大语言", support: "推理", version: "1600B / FP8", status: "可用" },
+    { id: "deepseek-v4-flash", source: "public", name: "DeepSeek-V4-Flash", scene: "大语言", support: "推理", version: "284B / Flash", status: "可用" },
+    { id: "kimi-k2", source: "public", name: "Kimi-K2", scene: "大语言", support: "推理", version: "1000B / long-context", status: "可用" },
     { id: "qwen", source: "public", name: "Qwen2.5-72B", scene: "大语言", support: "训练 / 推理", version: "72B / v2.5", status: "可用" },
     { id: "deepseek", source: "public", name: "DeepSeek-V3", scene: "大语言", support: "推理", version: "671B MoE / 2026.01", status: "可用" },
+    { id: "glm-46", source: "public", name: "GLM-4.6", scene: "大语言", support: "训练 / 推理", version: "2026.02", status: "可用" },
+    { id: "qwen-coder", source: "public", name: "Qwen3-Coder-30B-A3B-Instruct", scene: "大语言", support: "推理", version: "30B / coder", status: "可用" },
+    { id: "llama-31", source: "public", name: "Llama-3.1-70B", scene: "大语言", support: "推理", version: "70B / instruct", status: "可用" },
+    { id: "clip-vl", source: "public", name: "CLIP-ViT-Large", scene: "多模态", support: "推理", version: "vit-l/14", status: "可用" },
+    { id: "paddleocr-vl", source: "public", name: "PaddleOCR-VL-1.6", scene: "多模态", support: "推理", version: "900M / VL", status: "可用" },
     { id: "whisper", source: "public", name: "Whisper-Large-V3", scene: "音频", support: "推理", version: "large-v3", status: "可用" },
+    { id: "paraformer", source: "public", name: "Paraformer-Large", scene: "音频", support: "训练 / 推理", version: "asr-large", status: "可用" },
     { id: "alphafold", source: "public", name: "AlphaFold-Science", scene: "科学计算", support: "推理", version: "science-v1", status: "可用" },
+    { id: "science-solver", source: "public", name: "ScienceSolver-7B", scene: "科学计算", support: "训练 / 推理", version: "7B / science", status: "可用" },
+    { id: "molformer", source: "public", name: "MolFormer-Base", scene: "科学计算", support: "训练 / 推理", version: "molecule-base", status: "可用" },
+    { id: "bge-m3", source: "public", name: "BGE-M3", scene: "检索匹配", support: "推理", version: "0.6B / embedding", status: "可用" },
+    { id: "mteb-reranker", source: "public", name: "MTEB-Reranker", scene: "检索匹配", support: "推理", version: "1B / rerank", status: "可用" },
     { id: "bge-reranker", source: "public", name: "BGE-Reranker-Large", scene: "检索匹配", support: "训练 / 推理", version: "large-zh", status: "可用" },
+    { id: "e5-retrieval", source: "public", name: "E5-Mistral-Retrieval", scene: "检索匹配", support: "推理", version: "retrieval-v1", status: "可用" },
     { id: "pj-lite", source: "mine", name: "PuJian-Lite", scene: "大语言", support: "推理", version: "7B / 私有版本", status: "可用" },
+    { id: "mine-qwen-ft", source: "mine", name: "Qwen2.5-7B-Finetune", scene: "大语言", support: "训练 / 推理", version: "finetune-r3", status: "可用" },
     { id: "mine-science", source: "mine", name: "SciReason-13B", scene: "科学计算", support: "训练 / 推理", version: "13B / fine-tune", status: "可用" },
     { id: "mine-audio", source: "mine", name: "AudioLab-ASR", scene: "音频", support: "推理", version: "asr-v2", status: "可用" },
     { id: "mine-vl", source: "mine", name: "Personal-VL-7B", scene: "多模态", support: "推理", version: "vl-7b", status: "可用" },
+    { id: "mine-rerank", source: "mine", name: "Private-Reranker-3B", scene: "检索匹配", support: "推理", version: "rerank-3b", status: "可用" },
     { id: "visionlab", source: "team", name: "VisionLab-VL", scene: "多模态", support: "训练 / 推理", version: "VL-13B / 团队版本", status: "可用" },
     { id: "team-qwen", source: "team", name: "Team-Qwen2.5-32B", scene: "大语言", support: "训练 / 推理", version: "32B / 团队授权", status: "可用" },
+    { id: "team-deepseek", source: "team", name: "Team-DeepSeek-R1-Distill", scene: "大语言", support: "推理", version: "distill-32b", status: "可用" },
     { id: "team-rank", source: "team", name: "RankAgent-8B", scene: "检索匹配", support: "推理", version: "8B / team-r2", status: "可用" },
     { id: "team-audio", source: "team", name: "Team-AudioLM", scene: "音频", support: "训练 / 推理", version: "audio-team", status: "可用" },
     { id: "team-science", source: "team", name: "Team-ScienceGPT", scene: "科学计算", support: "推理", version: "science-team", status: "可用" },
   ],
   datasets: [
     { id: "ceval", source: "public", name: "C-Eval", type: "文本", scene: "大语言", size: "13.9k 样本", status: "可用" },
+    { id: "mmlu", source: "public", name: "MMLU", type: "文本", scene: "大语言", size: "15.9k 样本", status: "可用" },
+    { id: "gsm8k", source: "public", name: "GSM8K", type: "文本", scene: "大语言", size: "8.5k 样本", status: "可用" },
+    { id: "humaneval", source: "public", name: "HumanEval", type: "文本", scene: "大语言", size: "164 题", status: "可用" },
+    { id: "cmmlu", source: "public", name: "CMMLU", type: "文本", scene: "大语言", size: "11.5k 样本", status: "可用" },
     { id: "mmbench", source: "public", name: "MMBench", type: "图片", scene: "多模态", size: "20k 样本", status: "可用" },
+    { id: "mme", source: "public", name: "MME", type: "图片", scene: "多模态", size: "2.4k 样本", status: "可用" },
     { id: "audio-bench", source: "public", name: "AudioBench", type: "音频", scene: "音频", size: "4.8k 样本", status: "可用" },
+    { id: "librispeech", source: "public", name: "LibriSpeech-Test", type: "音频", scene: "音频", size: "5.4h 音频", status: "可用" },
     { id: "science-bench", source: "public", name: "ScienceQA", type: "文本", scene: "科学计算", size: "21k 样本", status: "可用" },
+    { id: "math-bench", source: "public", name: "MATH-500", type: "文本", scene: "科学计算", size: "500 题", status: "可用" },
     { id: "retrieval-bench", source: "public", name: "MTEB-Retrieval", type: "文本", scene: "检索匹配", size: "60k 样本", status: "可用" },
+    { id: "msmarco", source: "public", name: "MSMARCO-Passage", type: "文本", scene: "检索匹配", size: "100k 样本", status: "可用" },
     { id: "personal-eval", source: "mine", name: "个人推理样本集", type: "文本", scene: "大语言", size: "8.2k 样本", status: "可用" },
     { id: "mine-table", source: "mine", name: "财务表格问答集", type: "表格", scene: "大语言", size: "2.4k 样本", status: "可用" },
     { id: "mine-audio-set", source: "mine", name: "个人音频测试集", type: "音频", scene: "音频", size: "1.8k 样本", status: "可用" },
     { id: "mine-mm-set", source: "mine", name: "个人图文样本集", type: "图片", scene: "多模态", size: "3.1k 样本", status: "可用" },
+    { id: "mine-code-set", source: "mine", name: "个人代码生成集", type: "文本", scene: "大语言", size: "960 样本", status: "可用" },
+    { id: "mine-search-set", source: "mine", name: "个人检索评测集", type: "文本", scene: "检索匹配", size: "5.2k 样本", status: "可用" },
     { id: "search-ads", source: "team", name: "检索匹配样本集", type: "文本 / 排序", scene: "检索匹配", size: "126k 样本", status: "可用" },
     { id: "team-video", source: "team", name: "团队视频理解集", type: "视频", scene: "多模态", size: "9.6k 样本", status: "可用" },
     { id: "team-science-set", source: "team", name: "团队科学计算集", type: "表格", scene: "科学计算", size: "18k 样本", status: "可用" },
     { id: "team-audio-set", source: "team", name: "团队音频验证集", type: "音频", scene: "音频", size: "7.5k 样本", status: "可用" },
+    { id: "team-llm-set", source: "team", name: "团队大模型验收集", type: "文本", scene: "大语言", size: "32k 样本", status: "可用" },
+    { id: "team-mmbench-set", source: "team", name: "团队多模态回归集", type: "图片 / 视频", scene: "多模态", size: "12k 样本", status: "可用" },
   ],
   images: [
     { id: "vllm-0201", source: "public", category: "VLLM", name: "vllm(0.20.1)", framework: "VLLM", env: "CUDA 12.4 / Python 3.11", version: "0.20.1", status: "可用", recommended: true },
@@ -240,8 +313,8 @@ const modelTaskResources = {
     { id: "team-pytorch", source: "team", category: "PyTorch", name: "team-pytorch-h20", framework: "PyTorch", env: "CUDA 12.4 / Python 3.10", version: "team-2026.04", status: "可用" },
   ],
   compute: [
-    { id: "atlas", scope: "public", name: "Atlas 800T A2 资源池", source: "公共算力", chipType: "NPU", chipVendor: "其他", chip: "昇腾 910B", spec: "8卡 64GB / 高速互联", status: "可用", scenes: ["大语言", "多模态", "科学计算"] },
-    { id: "cloud-h20", scope: "public", name: "NVIDIA H800 集群", source: "公共算力", chipType: "GPU", chipVendor: "NVIDIA", chip: "NVIDIA H800", spec: "8卡 80GB / 高速互联", status: "可用", scenes: ["大语言", "多模态", "检索匹配"] },
+    { id: "atlas", scope: "public", name: "Atlas 800T A2 资源池", source: "预置算力", chipType: "NPU", chipVendor: "其他", chip: "昇腾 910B", spec: "8卡 64GB / 高速互联", status: "可用", scenes: ["大语言", "多模态", "科学计算"] },
+    { id: "cloud-h20", scope: "public", name: "NVIDIA H800 集群", source: "预置算力", chipType: "GPU", chipVendor: "NVIDIA", chip: "NVIDIA H800", spec: "8卡 80GB / 高速互联", status: "可用", scenes: ["大语言", "多模态", "检索匹配"] },
     { id: "mine-a800", scope: "mine", name: "我的 A800 训练节点", source: "用户自有", chipType: "GPU", chipVendor: "NVIDIA", chip: "NVIDIA A800", spec: "4卡 80GB / NVLink", status: "可用", scenes: ["大语言", "科学计算"] },
     { id: "mine-cpu", scope: "mine", name: "我的 CPU 基准节点", source: "用户自有", chipType: "CPU", chipVendor: "其他", chip: "x86 CPU", spec: "128 核 / 512GB 内存 / 接入中", status: "接入中", scenes: ["科学计算"] },
     { id: "team-h20", scope: "team", name: "团队 H20 推理集群", source: "团队资源", chipType: "GPU", chipVendor: "NVIDIA", chip: "NVIDIA H20", spec: "16卡 96GB / CUDA 12.4", status: "可用", scenes: ["大语言", "检索匹配"] },
@@ -303,7 +376,7 @@ const operatorPublicSpecs = [
 
 function sourceLabel(source, kind) {
   const names = { model: "模型", dataset: "数据集", image: "镜像", operator: "算子" };
-  return { public: "公共", mine: "我的", team: "团队" }[source] + names[kind];
+  return { public: "预置", mine: "我的", team: "团队" }[source] + names[kind];
 }
 
 function sourceOptionsFor(kind) {
@@ -416,7 +489,7 @@ const reports = [
 ];
 
 const computeRows = [
-  ["CMP-1001", "Atlas 800T A2 资源池", "平台公共", "GPU / 昇腾 910B", "32 卡 / 64GB HBM / RoCE", "可调度"],
+  ["CMP-1001", "Atlas 800T A2 资源池", "平台预置", "GPU / 昇腾 910B", "32 卡 / 64GB HBM / RoCE", "可调度"],
   ["CMP-2014", "团队 H20 推理集群", "团队资源", "GPU / H20", "16 卡 / 96GB / CUDA 12.4", "可调度"],
   ["CMP-3019", "实验室自有 NPU", "个人接入", "NPU / S3X", "8 卡 / 48GB / 代理离线", "不可用"],
   ["CMP-3022", "新接入训练节点", "个人接入", "GPU / A800", "4 卡 / 80GB / 待审", "待审核"],
@@ -540,6 +613,7 @@ function routeAlias(routeName) {
     "custom-report": "reports",
     "compute-detail": "compute",
     "compute-onboard": "compute",
+    "preset-model-detail": "assets-models",
     "asset-detail": assetRoutes[state.assetType] || "assets-datasets",
     "asset-review": assetRoutes[state.assetType] || "assets-datasets",
     "team-info": "team",
@@ -554,7 +628,7 @@ function parentRouteAliases(key) {
   return {
     tasks: ["tasks", "task-detail", "task-natural", "task-model", ...modelScenarios.map((item) => `task-model-${item.key}`)],
     reports: ["reports", "report-detail", "custom-report"],
-    assets: ["assets", "asset-detail", "asset-review", "assets-datasets", "assets-models", "assets-images", "assets-operators"],
+    assets: ["assets", "asset-detail", "asset-review", "preset-model-detail", "assets-datasets", "assets-models", "assets-images", "assets-operators"],
     team: ["team", "team-info", "team-members", "team-invites", "team-sharing"],
     compute: ["compute-detail", "compute-onboard"],
   }[key] || [];
@@ -1112,27 +1186,52 @@ function operatorSelectPanel() {
 
 function publicOperatorCascaderPanel() {
   const categories = Object.keys(publicOperatorLibrary);
-  const rows = publicOperatorLibrary[state.operatorTask.operatorCategory] || [];
+  const query = state.operatorTask.operatorQuery.trim().toLowerCase();
+  const rows = operatorCandidates(false);
+  const matchedCategories = publicOperatorMatchedCategories(query);
+  const activeCategory = query && !matchedCategories.includes(state.operatorTask.operatorCategory) ? matchedCategories[0] || state.operatorTask.operatorCategory : state.operatorTask.operatorCategory;
+  const visibleCount = rows.filter((item) => {
+    const text = item.name.toLowerCase();
+    return item.category === activeCategory && (!query || text.includes(query));
+  }).length;
   return `<div class="cloud-select-panel operator-cascader">
+    <div class="select-search-row"><input data-dropdown-search="operator" value="${state.operatorTask.operatorQuery}" placeholder="搜索算子名称" /><button type="button" title="搜索" onclick="applyDropdownSearch('operator')">⌕</button><button type="button" onclick="clearDropdownSearch('operator')" title="刷新">↻</button></div>
     <div class="cascader-body">
-      <div class="cascader-left">${categories.map((cat) => `<button type="button" class="${state.operatorTask.operatorCategory === cat ? "active" : ""}" onclick="setOperatorTask('operatorCategory','${cat}')">${cat}<span>›</span></button>`).join("")}</div>
-      <div class="cascader-right">${rows.map((item) => publicOperatorOption(item)).join("")}</div>
+      <div class="cascader-left">${categories.map((cat) => publicOperatorCategoryButton(cat, query, activeCategory)).join("")}</div>
+      <div class="cascader-right">${rows.map((item) => publicOperatorOption(item, item.category, activeCategory)).join("")}<div class="empty dropdown-empty" style="${visibleCount ? "display:none" : ""}">暂无匹配的算子</div></div>
     </div>
   </div>`;
 }
 
-function publicOperatorOption(item) {
+function publicOperatorMatchedCategories(query) {
+  if (!query) return Object.keys(publicOperatorLibrary);
+  return Object.entries(publicOperatorLibrary)
+    .filter(([, items]) => items.some((item) => item.name.toLowerCase().includes(query)))
+    .map(([category]) => category);
+}
+
+function publicOperatorCategoryButton(category, query, activeCategory) {
+  const visible = !query || publicOperatorLibrary[category].some((item) => item.name.toLowerCase().includes(query));
+  return `<button type="button" ${visible ? "" : `style="display:none"`} class="${activeCategory === category ? "active" : ""}" onclick="setOperatorTask('operatorCategory','${category}')">${category}<span>›</span></button>`;
+}
+
+function publicOperatorOption(item, category, activeCategory) {
   const selected = state.operatorTask.operators.includes(item.id);
-  return `<button type="button" class="image-option ${selected ? "selected" : ""}" onclick="chooseOperatorSelection('${item.id}')"><span>${item.name}</span><strong>${selected ? "✓" : ""}</strong></button>`;
+  const text = item.name;
+  const query = state.operatorTask.operatorQuery.trim().toLowerCase();
+  const visible = category !== activeCategory || (query && !text.toLowerCase().includes(query)) ? `style="display:none"` : "";
+  return `<button type="button" data-search-row data-category="${category}" data-search-text="${text}" ${visible} class="image-option ${selected ? "selected" : ""}" onclick="chooseOperatorSelection('${item.id}')"><span>${item.name}</span><strong>${selected ? "✓" : ""}</strong></button>`;
 }
 
 function privateOperatorSearchPanel() {
   const rows = operatorCandidates(false);
+  const query = state.operatorTask.operatorQuery.trim().toLowerCase();
+  const visibleCount = rows.filter((item) => `${item.name} ${item.category} ${item.framework} ${item.status} ${item.reason || ""}`.toLowerCase().includes(query)).length;
   return `<div class="cloud-select-panel operator-panel">
-    <div class="select-search-row"><input data-dropdown-search="operator" value="${state.operatorTask.operatorQuery}" placeholder="搜索算子名称、分类或标签" /><button type="button" title="搜索" onclick="applyDropdownSearch('operator')">⌕</button><button type="button" onclick="clearDropdownSearch('operator')" title="刷新">↻</button></div>
+    <div class="select-search-row"><input data-dropdown-search="operator" value="${state.operatorTask.operatorQuery}" placeholder="搜索算子名称" /><button type="button" title="搜索" onclick="applyDropdownSearch('operator')">⌕</button><button type="button" onclick="clearDropdownSearch('operator')" title="刷新">↻</button></div>
     <div class="select-table">
       <div class="select-table-head operator-table-head"><span>算子名称</span><span>分类</span><span>框架</span><span>状态</span></div>
-      ${rows.map(privateOperatorOption).join("")}<div class="empty dropdown-empty" style="display:none">没有匹配的算子</div>
+      ${rows.map(privateOperatorOption).join("")}<div class="empty dropdown-empty" style="${visibleCount ? "display:none" : ""}">暂无匹配的算子</div>
     </div>
   </div>`;
 }
@@ -1140,7 +1239,7 @@ function privateOperatorSearchPanel() {
 function privateOperatorOption(item) {
   const selected = state.operatorTask.operators.includes(item.id);
   const disabled = item.status !== "可用";
-  const text = `${item.name} ${item.category} ${item.framework}`;
+  const text = `${item.name} ${item.category} ${item.framework} ${item.status} ${item.reason || ""}`;
   const query = state.operatorTask.operatorQuery.trim().toLowerCase();
   const visible = query && !text.toLowerCase().includes(query) ? `style="display:none"` : "";
   const reason = disabled ? item.reason || "依赖版本不匹配" : "";
@@ -1150,13 +1249,15 @@ function privateOperatorOption(item) {
 }
 
 function operatorCandidates(applyQuery = true) {
-  if (state.operatorTask.operatorSource === "public") {
-    return Object.entries(publicOperatorLibrary).flatMap(([category, items]) => items.map((item) => ({ ...item, category, source: "public", status: "可用" })));
-  }
   const query = applyQuery ? state.operatorTask.operatorQuery.trim().toLowerCase() : "";
+  if (state.operatorTask.operatorSource === "public") {
+    return Object.entries(publicOperatorLibrary)
+      .flatMap(([category, items]) => items.map((item) => ({ ...item, category, source: "public", status: "可用" })))
+      .filter((item) => !query || item.name.toLowerCase().includes(query));
+  }
   return privateOperatorResources
     .filter((item) => item.source === state.operatorTask.operatorSource)
-    .filter((item) => !query || `${item.name} ${item.category} ${item.framework}`.toLowerCase().includes(query));
+    .filter((item) => !query || `${item.name} ${item.category} ${item.framework} ${item.status} ${item.reason || ""}`.toLowerCase().includes(query));
 }
 
 function selectedOperators() {
@@ -1195,7 +1296,7 @@ function removeOperatorSelection(id) {
 function operatorComputeSourceSelector() {
   const privateScope = workspacePrivateScope();
   const options = [
-    { key: "public", label: "公共资源" },
+    { key: "public", label: "预置资源" },
     { key: privateScope.key, label: privateScope.key === "team" ? "团队资源" : "我的资源" },
   ];
   return `<div class="field"><label>算力资源来源 <span class="required">*</span></label><div class="choice-row">${options.map((item) => `<button type="button" class="choice-pill ${state.operatorTask.computeSource === item.key ? "active" : ""}" onclick="setOperatorComputeSource('${item.key}')">${item.label}</button>`).join("")}</div></div>`;
@@ -1234,7 +1335,7 @@ function operatorPublicSpecPanel() {
     <div class="select-filter-row compute-filter-row"><select onchange="setOperatorComputeVendor(this.value)">${filterOptions(operatorComputeVendorOptions(), state.operatorTask.computeVendor)}</select></div>
     <div class="select-table">
       <div class="select-table-head operator-spec-head"><span></span><span>规格名称</span><span>${state.operatorTask.computeSpecTab}</span><span>显存 / HBM</span><span>CPU</span><span>内存</span></div>
-      ${specs.map((spec) => operatorSpecRow(spec)).join("")}<div class="empty dropdown-empty" style="display:none">暂无匹配规格</div>
+      ${specs.map((spec) => operatorSpecRow(spec)).join("")}<div class="empty dropdown-empty" style="${specs.length ? "display:none" : ""}">暂无匹配的资源</div>
     </div>
     <div class="operator-spec-footer"><span>已选择：<strong>${selected.name}</strong>（${selected.cpu}，${selected.ram}，${selected.accelerator}）</span><div class="row"><button class="btn primary" onclick="confirmOperatorSpec()">确定</button><button class="btn" onclick="cancelOperatorSpec()">取消</button></div></div>
   </div>`;
@@ -1267,7 +1368,7 @@ function operatorPrivateComputePanel() {
     <div class="select-filter-row compute-filter-row"><select onchange="setOperatorComputeVendor(this.value)">${filterOptions(operatorPrivateComputeVendorOptions(), state.operatorTask.computeVendor)}</select></div>
     <div class="select-table">
       <div class="select-table-head compute-table-head"><span>资源名称</span><span>规格</span><span>芯片</span></div>
-      ${rows.map(operatorPrivateComputeOption).join("")}<div class="empty dropdown-empty" style="display:none">没有匹配的资源</div>
+      ${rows.map(operatorPrivateComputeOption).join("")}<div class="empty dropdown-empty" style="${rows.length ? "display:none" : ""}">暂无匹配的资源</div>
     </div>
   </div>`;
 }
@@ -1307,11 +1408,11 @@ function operatorImageDisplay(item) {
 function operatorImagePanel() {
   const rows = operatorImageRows(false);
   return `<div class="cloud-select-panel operator-image-panel">
-    <div class="select-search-row"><input data-dropdown-search="operatorImage" value="${state.modelTaskFilters.image.query}" placeholder="搜索镜像名称、AI 框架或版本" /><button type="button" onclick="applyDropdownSearch('operatorImage')">⌕</button><button type="button" onclick="clearDropdownSearch('operatorImage')">↻</button></div>
+    <div class="select-search-row"><input data-dropdown-search="operatorImage" value="${state.modelTaskFilters.image.query}" placeholder="搜索镜像名称" /><button type="button" onclick="applyDropdownSearch('operatorImage')">⌕</button><button type="button" onclick="clearDropdownSearch('operatorImage')">↻</button></div>
     <div class="select-filter-row compute-filter-row"><select onchange="setOperatorImageFilter('imageVendor',this.value)">${filterOptions(["全部厂商", "NVIDIA", "昇腾", "昆仑芯", "寒武纪", "CPU"], state.operatorTask.imageVendor)}</select><select onchange="setOperatorImageFilter('imageFramework',this.value)">${filterOptions(["全部框架", "PyTorch", "TensorFlow", "MindSpore", "PaddlePaddle"], state.operatorTask.imageFramework)}</select></div>
     <div class="select-table">
       <div class="select-table-head operator-image-head"><span>镜像名称</span><span>版本</span><span>芯片厂商</span><span>AI 框架</span><span>运行环境</span><span>状态</span></div>
-      ${rows.map(operatorImageOption).join("")}<div class="empty dropdown-empty" style="display:none">没有匹配的镜像</div>
+      ${rows.map(operatorImageOption).join("")}<div class="empty dropdown-empty" style="${rows.length ? "display:none" : ""}">暂无匹配的镜像</div>
     </div>
   </div>`;
 }
@@ -1357,6 +1458,7 @@ function setOperatorComputeSource(source) {
   state.operatorTask.computeSource = source;
   state.operatorTask.computeVendor = "全部厂商";
   state.operatorTask.openPicker = "operatorCompute";
+  state.modelTask.openPicker = "";
   if (source === "public") {
     state.operatorTask.pendingComputeSpec = state.operatorTask.computeSpec;
   } else {
@@ -1383,6 +1485,7 @@ function setOperatorSpecTab(tab) {
 function setOperatorComputeVendor(vendor) {
   state.operatorTask.computeVendor = vendor;
   state.operatorTask.openPicker = "operatorCompute";
+  state.modelTask.openPicker = "";
   if (state.operatorTask.computeSource === "public") {
     const first = operatorPublicSpecs.find((item) => item.type === state.operatorTask.computeSpecTab && (vendor === "全部厂商" || computeVendorForSpec(item) === vendor));
     if (first) state.operatorTask.pendingComputeSpec = first.id;
@@ -1421,6 +1524,8 @@ function toggleOperatorImagePicker() {
 
 function setOperatorImageFilter(key, value) {
   state.operatorTask[key] = value;
+  state.operatorTask.openPicker = "operatorImage";
+  state.modelTask.openPicker = "";
   render();
 }
 
@@ -1476,9 +1581,10 @@ function modelTaskCreatePage() {
 
         <section class="config-section">
           <h3>算力与镜像配置</h3>
-          ${resourcePicker("compute")}
+          ${operatorComputeSourceSelector()}
+          ${operatorComputePicker()}
           ${sourceSelector("image", "镜像来源", "imageSource")}
-          ${resourcePicker("image")}
+          ${operatorImagePicker()}
         </section>
 
         <section class="config-section">
@@ -1564,7 +1670,7 @@ function selectPanel(kind) {
 function searchableSimplePanel(kind, placeholder) {
   const filter = state.modelTaskFilters[kind];
   const rows = filteredResources(kind, false);
-  const emptyText = rows.length ? "没有匹配的资源" : `暂无可选${kind === "model" ? "模型" : "数据集"}`;
+  const emptyText = kind === "model" ? "暂无匹配的模型" : "暂无匹配的数据集";
   return `<div class="cloud-select-panel">
     <div class="select-search-row"><input data-dropdown-search="${kind}" value="${filter.query}" placeholder="${placeholder}" /><button type="button" title="搜索" onclick="applyDropdownSearch('${kind}')">⌕</button><button type="button" onclick="clearDropdownSearch('${kind}')" title="刷新">↻</button></div>
     <div class="select-list simple-list">${rows.map((item) => simpleOption(kind, item)).join("")}<div class="empty dropdown-empty" style="${rows.length ? "display:none" : ""}">${emptyText}</div></div>
@@ -1634,7 +1740,7 @@ function filterOptions(options, selected) {
 }
 
 function computeSourceFilters() {
-  return isTeamWorkspace() ? ["全部", "公共算力", "团队资源"] : ["全部", "公共算力", "用户自有"];
+  return isTeamWorkspace() ? ["全部", "预置算力", "团队资源"] : ["全部", "预置算力", "用户自有"];
 }
 
 function setModelTaskFilter(kind, key, value) {
@@ -1673,7 +1779,8 @@ function filteredResources(kind, applyQuery = true) {
       .filter((item) => !scenario || item.scene === scenario)
       .filter((item) => !query || item.name.toLowerCase().includes(query))
       .filter((item) => filter.scene === "全部" || item.scene === filter.scene)
-      .filter((item) => filter.support === "全部" || item.support.includes(filter.support));
+      .filter((item) => filter.support === "全部" || item.support.includes(filter.support))
+      .sort(sortModelTaskResource);
   }
   if (kind === "dataset") {
     return modelTaskResources.datasets
@@ -1741,10 +1848,22 @@ function filterDropdownRows(kind, value) {
   if (!panel) return;
   const query = value.trim().toLowerCase();
   const activeCategory = state.modelTask.imageCategory;
+  const activeOperatorCategory = state.operatorTask.operatorCategory;
+  const isPublicOperatorPanel = kind === "operator" && panel.classList.contains("operator-cascader");
+  const publicOperatorCategories = isPublicOperatorPanel ? publicOperatorMatchedCategories(query) : [];
+  const visibleOperatorCategory = isPublicOperatorPanel && query && !publicOperatorCategories.includes(activeOperatorCategory) ? publicOperatorCategories[0] || "" : activeOperatorCategory;
+  if (isPublicOperatorPanel) {
+    panel.querySelectorAll(".cascader-left button").forEach((button) => {
+      const category = button.textContent.replace("›", "").trim();
+      const visible = !query || publicOperatorCategories.includes(category);
+      button.style.display = visible ? "" : "none";
+      button.classList.toggle("active", category === visibleOperatorCategory);
+    });
+  }
   let visibleCount = 0;
   panel.querySelectorAll("[data-search-row]").forEach((row) => {
     const text = (row.dataset.searchText || "").toLowerCase();
-    const categoryVisible = kind !== "image" || query || row.dataset.category === activeCategory;
+    const categoryVisible = isPublicOperatorPanel ? row.dataset.category === visibleOperatorCategory : (kind !== "image" || query || row.dataset.category === activeCategory);
     const visible = categoryVisible && (!query || text.includes(query));
     row.style.display = visible ? "" : "none";
     if (visible) visibleCount += 1;
@@ -1781,7 +1900,7 @@ const tagDictionary = {
   项目: ["验收测试", "采购评估", "性能基线"],
   环境: ["生产", "测试", "实验室"],
   类型: ["算子验证", "模型验证"],
-  算子: ["单算子", "公共算子", "自定义算子"],
+  算子: ["单算子", "预置算子", "自定义算子"],
   目标: ["性能稳定性", "精度一致性", "兼容性"],
   对比: ["芯片", "框架", "版本"],
 };
@@ -1947,17 +2066,17 @@ function openNaturalDialog() {
     <div class="nl-box">
       <div class="chat">
         <div class="bubble">请描述你想验证的模型、数据集、目标芯片和执行方式。</div>
-        <div class="bubble me">验证 Qwen2.5 在 H20 上的推理吞吐，使用公共数据集，走多 Agent。</div>
+        <div class="bubble me">验证 Qwen2.5 在 H20 上的推理吞吐，使用预置数据集，走多 Agent。</div>
         <div class="bubble">已解析为模型验证任务：推理验证 / Qwen2.5 / H20 / 多 Agent。请确认后创建。</div>
       </div>
-      <textarea>验证 Qwen2.5 在 H20 上的推理吞吐，使用公共数据集，走多 Agent。</textarea>
+      <textarea>验证 Qwen2.5 在 H20 上的推理吞吐，使用预置数据集，走多 Agent。</textarea>
       <button class="btn primary" onclick="closeModal();taskCreated()">确认创建</button>
     </div>
   </div></div>`;
 }
 
 function naturalTaskPage() {
-  const defaultText = "验证 Qwen2.5 在 H20 上的推理吞吐，使用公共数据集，走多 Agent。";
+  const defaultText = "验证 Qwen2.5 在 H20 上的推理吞吐，使用预置数据集，走多 Agent。";
   const parsed = state.naturalParsed || parseNaturalTask(defaultText);
   return shell(`
     ${pageHead("自然语言创建任务", "通过对话描述验证目标，系统解析任务类型、模型/算子、算力资源和执行方式。", `<button class="btn" onclick="setRoute('tasks')">返回任务管理</button>`)}
@@ -1996,7 +2115,7 @@ function parseNaturalTask(input) {
   const lower = text.toLowerCase();
   const isOperator = /算子|conv2d|matmul|layernorm|rmsnorm|allreduce|gelu|relu/i.test(text);
   const parsed = {
-    input: text || "验证 Qwen2.5 在 H20 上的推理吞吐，使用公共数据集，走多 Agent。",
+    input: text || "验证 Qwen2.5 在 H20 上的推理吞吐，使用预置数据集，走多 Agent。",
     type: isOperator ? "算子验证" : "模型验证",
     target: /训练/.test(text) ? "训练验证" : "推理验证",
     execution: /agent/i.test(text) || /多\s*Agent/.test(text) ? "多 Agent 验证系统" : "标准验证流程",
@@ -2010,7 +2129,7 @@ function parseNaturalTask(input) {
     parsed.model = findResourceFromText(modelTaskResources.models, text, "model");
     parsed.dataset = findResourceFromText(modelTaskResources.datasets, text, "dataset");
     if (!parsed.model) parsed.missing.push("模型");
-    if (!parsed.dataset) parsed.missing.push(/公共数据集|团队数据集|我的数据集/.test(text) ? "具体数据集名称" : "数据集");
+    if (!parsed.dataset) parsed.missing.push(/预置数据集|团队数据集|我的数据集/.test(text) ? "具体数据集名称" : "数据集");
   }
   parsed.compute = findComputeFromText(text);
   parsed.image = findResourceFromText(modelTaskResources.images, text, "image") || modelTaskResources.images.find((item) => item.source === "public" && item.status === "可用");
@@ -2221,12 +2340,12 @@ function customReportPage() {
 
 function computeSourceOptions() {
   return isTeamWorkspace()
-    ? ["全部来源", "平台公共", "团队资源"]
-    : ["全部来源", "平台公共", "个人接入"];
+    ? ["全部来源", "平台预置", "团队资源"]
+    : ["全部来源", "平台预置", "个人接入"];
 }
 
 function computeRowsForWorkspace() {
-  return computeRows.filter((row) => row[2] === "平台公共" || (isTeamWorkspace() ? row[2] === "团队资源" : row[2] === "个人接入"));
+  return computeRows.filter((row) => row[2] === "平台预置" || (isTeamWorkspace() ? row[2] === "团队资源" : row[2] === "个人接入"));
 }
 
 function normalizeComputeFilters() {
@@ -2278,7 +2397,7 @@ function computeDetailPage() {
   return shell(`
     ${pageHead("算力资源详情", "查看基本信息、规格、适用场景、接入状态、审核状态、能力校验和调度信息。", `<button class="btn" onclick="setRoute('compute')">返回列表</button><button class="btn" onclick="toast('检测任务已启动')">检测</button>`)}
     <div class="grid cols-2">
-      <div class="card"><h3>基本信息</h3><table><tr><th>资源名称</th><td>Atlas 800T A2 资源池</td></tr><tr><th>资源 ID</th><td>CMP-1001</td></tr><tr><th>来源</th><td>平台公共</td></tr><tr><th>芯片型号</th><td>昇腾 910B</td></tr></table></div>
+      <div class="card"><h3>基本信息</h3><table><tr><th>资源名称</th><td>Atlas 800T A2 资源池</td></tr><tr><th>资源 ID</th><td>CMP-1001</td></tr><tr><th>来源</th><td>平台预置</td></tr><tr><th>芯片型号</th><td>昇腾 910B</td></tr></table></div>
       <div class="card"><h3>规格信息</h3><table><tr><th>卡数</th><td>32</td></tr><tr><th>显存</th><td>64GB HBM</td></tr><tr><th>网络</th><td>RoCE</td></tr><tr><th>框架</th><td>PyTorch / CANN</td></tr></table></div>
       <div class="card"><h3>接入与审核</h3><p>${statusBadge("可调度")} ${statusBadge("已生成")} <span class="badge blue">代理在线</span></p><p class="muted">最近心跳：2026-06-04 11:52，审核状态：审核通过。</p></div>
       <div class="card"><h3>能力校验与调度</h3><p>最近检测结果：通过。当前占用任务：3，历史任务：128。</p><p>适用场景：大语言、多模态、科学计算。</p></div>
@@ -2295,6 +2414,557 @@ function computeOnboardPage() {
       <div class="card"><h3>连通性检测结果</h3><p>${statusBadge("可调度")} 代理已绑定，端口可达，驱动版本匹配。</p><div class="empty">若检测失败，会展示失败原因并禁止进入任务创建可选资源。</div></div>
     </div>
   `, "compute");
+}
+
+function sortModelTaskResource(a, b) {
+  if (state.modelTask.modelSource === "public") {
+    const hotA = Boolean(modelAssetProfiles[a.id]?.hot);
+    const hotB = Boolean(modelAssetProfiles[b.id]?.hot);
+    if (hotA !== hotB) return hotA ? -1 : 1;
+    const providerA = modelAssetProfiles[a.id]?.provider || providerFromModelName(a.name);
+    const providerB = modelAssetProfiles[b.id]?.provider || providerFromModelName(b.name);
+    return providerA.localeCompare(providerB, "zh-Hans-CN") || a.name.localeCompare(b.name, "zh-Hans-CN");
+  }
+  return a.name.localeCompare(b.name, "zh-Hans-CN");
+}
+
+function modelAssetScopeOptions() {
+  return [
+    { key: "public", label: "预置模型" },
+    { key: isTeamWorkspace() ? "team" : "mine", label: isTeamWorkspace() ? "团队模型" : "我的模型" },
+  ];
+}
+
+const modelAssetProfiles = {
+  "deepseek-v4-pro": { alias: "DeepSeek-V4-Pro", provider: "DeepSeek", params: 1600, sourceName: "Model Scope", updatedAt: "2026.05.20", hot: true, description: "旗舰级 MoE 大模型，总参 1.6T，激活 49B，原生支持百万级超长上下文。依托海量高质量训练数据，具备顶尖数学逻辑、复杂推理、专业代码与长文本深度解析能力，适配高阶科研、复杂办公、深度智能代理等高难度场景。" },
+  "deepseek-v4-pro-fp8": { alias: "DeepSeek-V4-Pro-FP8", provider: "DeepSeek", params: 1600, sourceName: "Hugging Face", updatedAt: "2026.06.05", hot: false, description: "面向推理部署优化的 FP8 版本，保持旗舰模型核心能力，同时降低显存占用，适合大规模吞吐验证和多资源池部署对比。" },
+  "deepseek-v4-flash": { alias: "DeepSeek-V4-Flash", provider: "DeepSeek", params: 284, sourceName: "Model Scope", updatedAt: "2026.05.26", hot: true, description: "高效轻量化 MoE 模型，总参 284B，激活 13B，推理速度快、延迟低、调用成本低，适合日常对话、内容创作、基础 RAG、批量文案处理等普惠刚需场景。" },
+  "kimi-k2": { alias: "Kimi-K2", provider: "Kimi", params: 1000, sourceName: "Model Scope", updatedAt: "2026.05.26", hot: true, description: "面向长文本、多轮对话和文档理解场景，适合验证长上下文推理、材料分析和复杂问答表现。" },
+  qwen: { alias: "Qwen2.5-72B", provider: "Qwen", params: 72, sourceName: "Model Scope", updatedAt: "2026.05.20", hot: true, description: "通用大语言模型，兼顾训练与推理验证，适合吞吐、延迟、精度和跨芯片性能基线对比。" },
+  deepseek: { alias: "DeepSeek-V3", provider: "DeepSeek", params: 671, sourceName: "Model Scope", updatedAt: "2026.05.30", hot: true, description: "适合复杂推理、代码生成与知识问答验证的大语言模型，可用于多芯片推理效率和长文本能力评估。" },
+  "glm-46": { alias: "GLM-4.6", provider: "GLM", params: 32, sourceName: "Model Scope", updatedAt: "2026.05.18", hot: false, description: "面向通用问答、工具调用和代码辅助场景，适合验证模型服务吞吐、延迟和稳定性。" },
+  "qwen-coder": { alias: "Qwen3-Coder-30B-A3B-Instruct", provider: "Qwen", params: 30, sourceName: "Model Scope", updatedAt: "2026.06.02", hot: false, description: "面向代码生成和工程辅助任务的指令模型，适合验证代码任务、工具调用和长链路推理表现。" },
+  "llama-31": { alias: "Llama-3.1-70B", provider: "Meta", params: 70, sourceName: "Hugging Face", updatedAt: "2026.05.16", hot: false, description: "开源大模型基线，可用于跨芯片推理能力、部署兼容性和开源生态适配验证。" },
+  "clip-vl": { alias: "CLIP-ViT-Large", provider: "OpenAI", params: 1, sourceName: "Hugging Face", updatedAt: "2026.05.12", hot: false, description: "图文匹配和多模态表示验证常用模型，适合图文检索、相似度匹配和多模态编码评估。" },
+  "paddleocr-vl": { alias: "PaddleOCR-VL-1.6", provider: "PaddlePaddle", params: 0.9, sourceName: "Model Scope", updatedAt: "2026.06.04", hot: false, description: "面向 OCR 和文档理解的多模态模型，适合图片文字识别、版面理解和视觉语言任务验证。" },
+  whisper: { alias: "Whisper-large-v3", provider: "OpenAI", params: 1.5, sourceName: "Hugging Face", updatedAt: "2026.05.10", hot: false, description: "语音识别与音频转写场景验证模型，可用于端到端识别准确率、延迟和资源消耗评估。" },
+  paraformer: { alias: "Paraformer-Large", provider: "ModelScope", params: 0.23, sourceName: "Model Scope", updatedAt: "2026.05.04", hot: false, description: "中文语音识别验证模型，适合音频识别、延迟和多硬件部署稳定性评估。" },
+  alphafold: { alias: "AlphaFold-Science", provider: "DeepMind", params: 93, sourceName: "Model Scope", updatedAt: "2026.05.08", hot: false, description: "科学计算场景下的结构预测验证模型，适合验证复杂推理链路和算力资源适配。" },
+  "science-solver": { alias: "ScienceSolver-7B", provider: "平台预置", params: 7, sourceName: "Model Scope", updatedAt: "2026.05.28", hot: false, description: "面向科学问答、公式推理和实验数据理解的验证模型，覆盖科学计算类任务基线。" },
+  molformer: { alias: "MolFormer-Base", provider: "平台预置", params: 0.1, sourceName: "Model Scope", updatedAt: "2026.05.15", hot: false, description: "面向分子表示与属性预测的科学计算模型，可用于训练与推理链路验证。" },
+  "bge-m3": { alias: "BGE-M3", provider: "BAAI", params: 0.6, sourceName: "Hugging Face", updatedAt: "2026.05.22", hot: false, description: "多语言、多粒度向量检索模型，适合检索召回、语义匹配和 RAG 检索链路评估。" },
+  "mteb-reranker": { alias: "MTEB-Reranker", provider: "平台预置", params: 1, sourceName: "Model Scope", updatedAt: "2026.05.24", hot: false, description: "面向检索排序任务的重排模型，适合验证召回后排序质量、延迟和资源占用。" },
+  "bge-reranker": { alias: "BGE-Reranker-Large", provider: "BAAI", params: 0.56, sourceName: "Hugging Face", updatedAt: "2026.05.06", hot: false, description: "适合检索、排序和召回链路验证，可用于多资源环境下的重排性能比较。" },
+};
+
+function normalizeModelAssetState() {
+  const validScopes = modelAssetScopeOptions().map((item) => item.key);
+  if (!validScopes.includes(state.modelAsset.scope)) state.modelAsset.scope = "public";
+  const maxPage = Math.max(1, Math.ceil(filteredModelAssets().length / state.modelAsset.pageSize));
+  if (state.modelAsset.page > maxPage) state.modelAsset.page = maxPage;
+  if (state.modelAsset.page < 1) state.modelAsset.page = 1;
+}
+
+function modelsAssetPage() {
+  normalizeModelAssetState();
+  const helper = isTeamWorkspace() ? "查看平台预置模型，管理团队可用模型。" : "查看平台预置模型，管理你上传的自定义模型。";
+  const scope = state.modelAsset.scope;
+  const canManage = scope === "mine" || (scope === "team" && canShowTeamManagement());
+  const action = canManage ? `<button class="btn primary" onclick="openModelCreateModal()">${scope === "team" ? "新建团队模型" : "新建模型"}</button>` : "";
+  return shell(`
+    ${pageHead("模型", helper, action)}
+    <div class="card">
+      <div class="segmented asset-scope-tabs" style="margin-bottom:12px">${modelAssetScopeOptions().map((item) => `<button class="${scope === item.key ? "active" : ""}" onclick="setModelAssetScope('${item.key}')">${item.label}</button>`).join("")}</div>
+      ${scope === "public" ? presetModelFilters() : privateModelFilters()}
+      ${scope === "public" ? presetModelGrid() : privateModelTable(scope)}
+      ${modelAssetPagination()}
+    </div>
+  `, "assets-models");
+}
+
+function presetModelFilters() {
+  const filters = state.modelAsset;
+  return `<div class="filters model-asset-filters">
+    <div class="input-group task-search"><input value="${filters.queryDraft}" oninput="state.modelAsset.queryDraft=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();applyModelAssetSearch()}" placeholder="搜索您感兴趣的模型" /><button class="btn" type="button" onclick="applyModelAssetSearch()">搜索</button></div>
+    <select onchange="setModelAssetFilter('scene',this.value)">${filterOptions(modelSceneOptions(), filters.scene)}</select>
+    <select onchange="setModelAssetFilter('capability',this.value)">${filterOptions(["全部功能", "训练", "推理"], filters.capability)}</select>
+    <div class="param-filter">
+      <button class="param-trigger ${filters.paramPanelOpen ? "active" : ""}" type="button" onclick="toggleModelParamPanel()"><span>模型参数量</span><strong>${modelParamLabel()}</strong><em>v</em></button>
+      ${filters.paramPanelOpen ? `<div class="param-popover">
+        <div class="param-inputs">
+          <label><input id="model-param-min" type="number" min="0" max="2000" value="${filters.minParamsDraft}" oninput="setModelParamDraft('min',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();applyModelParamRange()}" /><span>B</span></label>
+          <span>–</span>
+          <label><input id="model-param-max" type="number" min="0" max="2000" value="${filters.maxParamsDraft}" oninput="setModelParamDraft('max',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();applyModelParamRange()}" /><span>B</span></label>
+        </div>
+        <div class="param-sliders">
+          <input type="range" min="0" max="2000" value="${filters.maxParamsDraft}" oninput="setModelParamDraft('max',this.value,true)" />
+        </div>
+        <div class="param-actions"><button class="btn primary" type="button" onclick="applyModelParamRange()">确定</button><button class="btn" type="button" onclick="resetModelParamRange()">重置</button></div>
+      </div>` : ""}
+    </div>
+  </div>`;
+}
+
+function privateModelFilters() {
+  const filters = state.modelAsset;
+  return `<div class="filters model-asset-filters">
+    <div class="input-group task-search"><input value="${filters.queryDraft}" oninput="state.modelAsset.queryDraft=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();applyModelAssetSearch()}" placeholder="输入模型名称、标签进行搜索" /><button class="btn" type="button" onclick="applyModelAssetSearch()">搜索</button></div>
+  </div>`;
+}
+
+function modelSceneOptions() {
+  return ["全部场景", "大语言", "多模态", "音频", "科学计算", "检索匹配"];
+}
+
+function modelTagOptions() {
+  const tags = modelRowsForCurrentScope().flatMap((row) => (row.tags || "").split(" / ").filter(Boolean));
+  return ["全部标签", ...Array.from(new Set(tags))];
+}
+
+function modelRowsForCurrentScope() {
+  return modelTaskResources.models
+    .filter((row) => row.source === state.modelAsset.scope)
+    .map(modelResourceToAssetRow);
+}
+
+function modelResourceToAssetRow(resource) {
+  const profile = modelAssetProfiles[resource.id] || {};
+  const params = profile.params ?? parseModelParams(resource.version);
+  return {
+    id: resource.id,
+    scope: resource.source,
+    name: resource.name,
+    alias: profile.alias || resource.name,
+    scene: resource.scene,
+    capability: resource.support,
+    provider: profile.provider || providerFromModelName(resource.name),
+    params,
+    sourceName: profile.sourceName || "Model Scope",
+    updatedAt: profile.updatedAt || "2026.05.18",
+    description: profile.description || `${resource.name} 可用于${resource.scene}场景下的训练、推理和跨芯片验证。`,
+    hot: Boolean(profile.hot),
+    visible: resource.source === "team" ? "当前团队" : "仅自己可见",
+    owner: profile.owner || (resource.source === "team" ? "团队空间" : "jing"),
+    version: resource.version || "v1.0",
+    tags: profile.tags || `${resource.scene} / ${resource.support.includes("训练") ? "训练" : "推理"}`,
+  };
+}
+
+function providerFromModelName(name) {
+  if (/deepseek/i.test(name)) return "DeepSeek";
+  if (/qwen/i.test(name)) return "Qwen";
+  if (/glm/i.test(name)) return "GLM";
+  if (/llama/i.test(name)) return "Meta";
+  if (/clip|whisper/i.test(name)) return "OpenAI";
+  if (/bge/i.test(name)) return "BAAI";
+  if (/paddle/i.test(name)) return "PaddlePaddle";
+  return "平台预置";
+}
+
+function parseModelParams(version = "") {
+  const b = version.match(/(\d+(?:\.\d+)?)\s*B/i);
+  if (b) return Number(b[1]);
+  const m = version.match(/(\d+(?:\.\d+)?)\s*M/i);
+  if (m) return Number((Number(m[1]) / 1000).toFixed(2));
+  return 1;
+}
+
+function filteredModelAssets() {
+  const filters = state.modelAsset;
+  const keyword = filters.query.trim().toLowerCase();
+  return modelRowsForCurrentScope()
+    .filter((row) => !keyword || `${row.id} ${row.name} ${row.provider || ""} ${row.scene || ""} ${row.tags || ""}`.toLowerCase().includes(keyword))
+    .filter((row) => state.modelAsset.scope !== "public" || filters.scene === "全部场景" || row.scene === filters.scene || row.scene?.startsWith(`${filters.scene} /`))
+    .filter((row) => state.modelAsset.scope !== "public" || filters.capability === "全部功能" || row.capability?.includes(filters.capability))
+    .filter((row) => state.modelAsset.scope !== "public" || !filters.minParams || Number(row.params) >= Number(filters.minParams))
+    .filter((row) => state.modelAsset.scope !== "public" || !filters.maxParams || Number(row.params) <= Number(filters.maxParams))
+    .sort(sortModelAssetRows);
+}
+
+function sortModelAssetRows(a, b) {
+  if (state.modelAsset.scope === "public") {
+    if (a.hot !== b.hot) return a.hot ? -1 : 1;
+    const providerA = a.provider || providerFromModelName(a.name);
+    const providerB = b.provider || providerFromModelName(b.name);
+    return providerA.localeCompare(providerB, "zh-Hans-CN") || a.name.localeCompare(b.name, "zh-Hans-CN");
+  }
+  return a.name.localeCompare(b.name, "zh-Hans-CN");
+}
+
+function pagedModelAssets() {
+  const start = (state.modelAsset.page - 1) * state.modelAsset.pageSize;
+  return filteredModelAssets().slice(start, start + state.modelAsset.pageSize);
+}
+
+function presetModelGrid() {
+  const rows = pagedModelAssets();
+  return `<div class="model-card-grid">${rows.map(modelAssetCard).join("") || `<div class="empty">暂无匹配的模型</div>`}</div>`;
+}
+
+function modelAssetCard(row) {
+  return `<article class="model-asset-card">
+    ${row.hot ? `<span class="model-hot">热门</span>` : ""}
+    <div class="model-card-main">
+      <h3>${row.name}</h3>
+      <div class="model-alias">${row.alias}</div>
+      <div class="model-chips"><span>${row.scene}</span><span>${row.provider}</span><span>参数量 ${row.params}B</span></div>
+      <p>${row.description}</p>
+    </div>
+    <div class="model-card-foot">
+      <span>${row.sourceName}</span>
+      <span>${row.updatedAt} 更新</span>
+      <button class="btn text" onclick="openPresetModelDetail('${row.id}')">查看</button>
+    </div>
+  </article>`;
+}
+
+function openPresetModelDetail(id) {
+  state.selectedPresetModelId = id;
+  state.assetType = "models";
+  state.modelAsset.scope = "public";
+  setRoute("preset-model-detail");
+}
+
+function presetModelDetailPage() {
+  const resource = modelTaskResources.models.find((item) => item.source === "public" && item.id === state.selectedPresetModelId)
+    || modelTaskResources.models.find((item) => item.source === "public");
+  const row = modelResourceToAssetRow(resource);
+  const isDeepSeekPro = row.id === "deepseek-v4-pro";
+  const intro = isDeepSeekPro ? deepSeekProIntro(row) : genericPresetModelIntro(row);
+  return shell(`
+    <div class="preset-model-detail">
+      <button class="detail-back" onclick="setRoute('assets-models')">←</button>
+      <div class="preset-model-hero">
+        <h1>${row.name}</h1>
+        <p>${row.alias}</p>
+        <div class="model-chips detail-chips"><span>${row.scene}模型</span><span>${row.provider}</span><span>参数量 ${row.params}B</span><span>开源协议 MIT</span></div>
+        <div class="preset-model-source"><span>${row.sourceName}</span><span>${row.updatedAt} 更新</span></div>
+      </div>
+      <div class="preset-detail-tabs"><button class="active">模型介绍</button></div>
+      <section class="preset-model-intro">
+        <h2>简介</h2>
+        ${intro}
+      </section>
+    </div>
+  `, "assets-models");
+}
+
+function deepSeekProIntro(row) {
+  return `
+    <p>本模型可以直接部署，模型详情请参考 <a href="javascript:void(0)">${row.name} ↗</a>。</p>
+    <p>${row.name} 是 DeepSeek-V4 系列的旗舰版本，采用混合专家（MoE）架构：</p>
+    <p>总参数量：1.6T（1600B）<br>
+    激活参数量：49B<br>
+    上下文长度：1M tokens（百万级长上下文）<br>
+    精度：FP4 + FP8 Mixed（MoE 专家参数使用 FP4，其他参数使用 FP8）<br>
+    三种推理模式：Non-think（快速响应）、Think High（深度推理）、Think Max（极限推理）</p>
+    <p>核心特性：</p>
+    <p>Hybrid Attention（CSA + HCA 混合注意力），长上下文效率大幅提升。在 1M 上下文设置下，相比 DeepSeek-V3.2 可显著降低单 token 推理 FLOPs 和 KV cache 成本。<br>
+    Manifold-Constrained Hyper-Connections（mHC）增强残差连接。<br>
+    Muon 优化器加速收敛。</p>
+    <p>${row.name}-Max 在开源模型中达到领先的知识能力和代码能力水平，在推理和 Agentic 任务上适合用于高阶模型验证。</p>
+  `;
+}
+
+function genericPresetModelIntro(row) {
+  return `
+    <p>本模型可以直接部署，也可以在模型验证任务中作为预置模型选择。</p>
+    <p>${row.name} 面向${row.scene}场景，适合用于${row.capability}能力验证、跨芯片性能对比和验证报告生成。</p>
+    <p>总参数量：${row.params}B<br>
+    支持能力：${row.capability}<br>
+    来源：${row.sourceName}<br>
+    更新日期：${row.updatedAt}</p>
+    <p>核心特性：</p>
+    <p>${row.description}</p>
+  `;
+}
+
+function privateModelTable(scope) {
+  const rows = pagedModelAssets();
+  const canManage = scope === "mine" || (scope === "team" && canShowTeamManagement());
+  return `<div class="table-wrap"><table><thead><tr><th>模型名称 / ID</th><th>可见范围</th><th>所有者</th><th>最新版本</th><th>标签</th><th>操作</th></tr></thead><tbody>${rows.map((row) => `<tr><td><button class="btn text" onclick="setRoute('asset-detail')">${row.name}</button><br><span class="muted">${row.id}</span></td><td>${row.visible}</td><td>${row.owner}</td><td>${row.version}</td><td>${row.tags}</td><td><button class="btn text" onclick="setRoute('asset-detail')">查看</button>${canManage ? `<button class="btn text" onclick="confirmBox('删除后该模型将无法继续用于新建验证任务，确认删除吗？','deleteModelAsset(\\'${row.id}\\')')">删除</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="6"><div class="empty">暂无匹配的模型</div></td></tr>`}</tbody></table></div>`;
+}
+
+function modelAssetPagination() {
+  const total = filteredModelAssets().length;
+  const totalPages = Math.max(1, Math.ceil(total / state.modelAsset.pageSize));
+  return `<div class="pagination"><button class="btn" ${state.modelAsset.page <= 1 ? "disabled" : ""} onclick="setModelAssetPage(${state.modelAsset.page - 1})">上一页</button><span>第 ${state.modelAsset.page} / ${totalPages} 页</span><button class="btn" ${state.modelAsset.page >= totalPages ? "disabled" : ""} onclick="setModelAssetPage(${state.modelAsset.page + 1})">下一页</button><select onchange="setModelAssetPageSize(this.value)">${filterOptions(["10", "20", "50"], String(state.modelAsset.pageSize))}</select><span>条 / 页</span><input type="number" min="1" max="${totalPages}" value="${state.modelAsset.page}" onkeydown="if(event.key==='Enter'){event.preventDefault();setModelAssetPage(this.value)}" /><button class="btn" onclick="setModelAssetPage(this.previousElementSibling.value)">跳转</button></div>`;
+}
+
+function modelParamLabel() {
+  return `${state.modelAsset.minParams || "0"}B – ${state.modelAsset.maxParams || "2000"}B`;
+}
+
+function toggleModelParamPanel() {
+  state.modelAsset.paramPanelOpen = !state.modelAsset.paramPanelOpen;
+  state.modelAsset.minParamsDraft = state.modelAsset.minParams || "0";
+  state.modelAsset.maxParamsDraft = state.modelAsset.maxParams || "2000";
+  render();
+}
+
+function normalizeParamValue(value, fallback) {
+  const number = Number(value);
+  if (Number.isNaN(number)) return fallback;
+  return String(Math.min(2000, Math.max(0, number)));
+}
+
+function setModelParamDraft(type, value, syncInput = false) {
+  const key = type === "min" ? "minParamsDraft" : "maxParamsDraft";
+  const inputId = type === "min" ? "model-param-min" : "model-param-max";
+  state.modelAsset[key] = normalizeParamValue(value, type === "min" ? "0" : "2000");
+  if (syncInput) {
+    const input = document.getElementById(inputId);
+    if (input) input.value = state.modelAsset[key];
+  }
+}
+
+function applyModelParamRange() {
+  let min = Number(normalizeParamValue(state.modelAsset.minParamsDraft, "0"));
+  let max = Number(normalizeParamValue(state.modelAsset.maxParamsDraft, "2000"));
+  if (min > max) [min, max] = [max, min];
+  state.modelAsset.minParams = String(min);
+  state.modelAsset.maxParams = String(max);
+  state.modelAsset.minParamsDraft = String(min);
+  state.modelAsset.maxParamsDraft = String(max);
+  state.modelAsset.paramPanelOpen = false;
+  state.modelAsset.page = 1;
+  render();
+}
+
+function resetModelParamRange() {
+  state.modelAsset.minParams = "0";
+  state.modelAsset.maxParams = "2000";
+  state.modelAsset.minParamsDraft = "0";
+  state.modelAsset.maxParamsDraft = "2000";
+  state.modelAsset.paramPanelOpen = false;
+  state.modelAsset.page = 1;
+  render();
+}
+
+function setModelAssetScope(scope) {
+  state.modelAsset.scope = scope;
+  state.modelAsset.queryDraft = "";
+  state.modelAsset.query = "";
+  state.modelAsset.scene = "全部场景";
+  state.modelAsset.capability = "全部功能";
+  state.modelAsset.minParams = "0";
+  state.modelAsset.maxParams = "2000";
+  state.modelAsset.minParamsDraft = "0";
+  state.modelAsset.maxParamsDraft = "2000";
+  state.modelAsset.paramPanelOpen = false;
+  state.modelAsset.tag = "全部标签";
+  state.modelAsset.page = 1;
+  render();
+}
+
+function setModelAssetFilter(key, value) {
+  state.modelAsset[key] = value;
+  state.modelAsset.page = 1;
+  render();
+}
+
+function applyModelAssetSearch() {
+  state.modelAsset.query = state.modelAsset.queryDraft.trim();
+  state.modelAsset.page = 1;
+  render();
+}
+
+function setModelAssetPage(page) {
+  state.modelAsset.page = Number(page) || 1;
+  render();
+}
+
+function setModelAssetPageSize(size) {
+  state.modelAsset.pageSize = Number(size) || 10;
+  state.modelAsset.page = 1;
+  render();
+}
+
+function openModelCreateModal() {
+  const scope = state.modelAsset.scope === "team" ? "team" : "mine";
+  const title = scope === "team" ? "新建团队模型" : "新建模型";
+  modalRoot.innerHTML = `<div class="modal-backdrop"><div class="modal form"><div class="row between"><h3>${title}</h3><button class="btn text" onclick="closeModal()">关闭</button></div><div class="field"><label>模型名称 *</label><input id="model-create-name" value="custom-model" /></div><div class="field"><label>最新版本 *</label><input id="model-create-version" value="v1.0" /></div><div class="field"><label>标签</label><input id="model-create-tags" value="大语言 / 推理" /></div><button class="btn primary" onclick="submitModelCreate('${scope}')">保存</button></div></div>`;
+}
+
+function submitModelCreate(scope) {
+  const name = document.getElementById("model-create-name").value.trim() || "custom-model";
+  const tags = document.getElementById("model-create-tags").value.trim() || "大语言 / 推理";
+  modelTaskResources.models.push({
+    id: `model-${scope}-${Date.now()}`,
+    source: scope,
+    name,
+    scene: tags.split(" / ")[0] || "大语言",
+    support: tags.includes("训练") ? "训练 / 推理" : "推理",
+    version: document.getElementById("model-create-version").value.trim() || "v1.0",
+    status: "可用",
+  });
+  closeModal();
+  toast("模型已保存");
+  render();
+}
+
+function deleteModelAsset(id) {
+  const index = modelTaskResources.models.findIndex((item) => item.id === id);
+  if (index >= 0) modelTaskResources.models.splice(index, 1);
+  closeModal();
+  toast("模型已删除");
+  render();
+}
+
+function operatorAssetScopeOptions() {
+  return [
+    { key: "public", label: "预置算子" },
+    { key: isTeamWorkspace() ? "team" : "mine", label: isTeamWorkspace() ? "团队算子" : "我的算子" },
+  ];
+}
+
+function normalizeOperatorAssetState() {
+  const validScopes = operatorAssetScopeOptions().map((item) => item.key);
+  if (!validScopes.includes(state.operatorAsset.scope)) state.operatorAsset.scope = "public";
+  const maxPage = Math.max(1, Math.ceil(filteredOperatorAssets().length / state.operatorAsset.pageSize));
+  if (state.operatorAsset.page > maxPage) state.operatorAsset.page = maxPage;
+  if (state.operatorAsset.page < 1) state.operatorAsset.page = 1;
+}
+
+function operatorsAssetPage() {
+  normalizeOperatorAssetState();
+  const scope = state.operatorAsset.scope;
+  const helper = isTeamWorkspace() ? "查看平台预置算子，管理团队可用算子。" : "查看平台预置算子，管理你创建或上传的自定义算子。";
+  return shell(`
+    ${pageHead("算子", helper)}
+    <div class="card">
+      <div class="segmented asset-scope-tabs" style="margin-bottom:12px">${operatorAssetScopeOptions().map((item) => `<button class="${scope === item.key ? "active" : ""}" onclick="setOperatorAssetScope('${item.key}')">${item.label}</button>`).join("")}</div>
+      ${operatorAssetFilters()}
+      ${scope === "public" ? publicOperatorAssetTable() : privateOperatorAssetTable(scope)}
+      ${operatorAssetPagination()}
+    </div>
+  `, "assets-operators");
+}
+
+function operatorAssetFilters() {
+  const filters = state.operatorAsset;
+  const search = `<div class="input-group task-search"><input value="${filters.queryDraft}" oninput="state.operatorAsset.queryDraft=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();applyOperatorAssetSearch()}" placeholder="${filters.scope === "public" ? "搜索算子名称" : "搜索算子名称、标签"}" /><button class="btn" type="button" onclick="applyOperatorAssetSearch()">搜索</button></div>`;
+  if (filters.scope !== "public") return `<div class="filters">${search}</div>`;
+  return `<div class="filters">${search}<select onchange="setOperatorAssetFilter('category',this.value)">${filterOptions(operatorAssetCategoryOptions(), filters.category)}</select></div>`;
+}
+
+function operatorAssetCategoryOptions() {
+  return ["全部分类", ...Object.keys(publicOperatorLibrary)];
+}
+
+function publicOperatorAssetRows() {
+  return Object.entries(publicOperatorLibrary).flatMap(([category, items]) => items.map((item, index) => ({
+    ...item,
+    source: "public",
+    category,
+    chips: operatorCompatibleChips(category, item.name),
+    updatedAt: `2026-05-${String(28 - (index % 8)).padStart(2, "0")}`,
+  })));
+}
+
+function operatorCompatibleChips(category, name) {
+  if (/通信|AllReduce|AllGather|Broadcast/i.test(`${category} ${name}`)) return "NVIDIA GPU / 昇腾 NPU";
+  if (/矩阵|MatMul|GEMM/i.test(`${category} ${name}`)) return "NVIDIA GPU / 昇腾 NPU / 昆仑芯 NPU";
+  if (/图像|Resize|Crop|Pad/i.test(`${category} ${name}`)) return "NVIDIA GPU / CPU";
+  return "NVIDIA GPU / 昇腾 NPU";
+}
+
+function privateOperatorAssetRows(scope = state.operatorAsset.scope) {
+  return privateOperatorResources
+    .filter((item) => item.source === scope)
+    .map((item) => ({
+      ...item,
+      description: operatorAssetDescription(item),
+      owner: item.owner || (scope === "team" ? "团队空间" : "jing"),
+      version: item.version || (item.source === "team" ? "team-v1.0" : "v1.0"),
+      tags: item.tags || `${item.category} / ${item.framework}`,
+    }));
+}
+
+function operatorAssetDescription(item) {
+  const descriptions = {
+    "mine-fused-ln": "融合归一化计算，减少访存并提升推理稳定性。",
+    "mine-flash-attn": "面向长序列推理的注意力算子优化实现。",
+    "mine-matmul-int8": "INT8 矩阵乘算子，用于量化推理验证。",
+    "team-sparse-matmul": "团队维护的稀疏矩阵乘算子。",
+    "team-allreduce": "针对多卡通信链路优化的 AllReduce 算子。",
+    "team-rmsnorm": "团队共享的 RMSNorm 算子包。",
+  };
+  return descriptions[item.id] || `${item.category}自定义算子。`;
+}
+
+function operatorRowsForCurrentScope() {
+  return state.operatorAsset.scope === "public" ? publicOperatorAssetRows() : privateOperatorAssetRows();
+}
+
+function filteredOperatorAssets() {
+  const filters = state.operatorAsset;
+  const keyword = filters.query.trim().toLowerCase();
+  return operatorRowsForCurrentScope()
+    .filter((row) => !keyword || `${row.name} ${row.description || ""} ${row.owner || ""} ${row.version || ""} ${row.tags || ""}`.toLowerCase().includes(keyword))
+    .filter((row) => filters.scope !== "public" || filters.category === "全部分类" || row.category === filters.category);
+}
+
+function pagedOperatorAssets() {
+  const start = (state.operatorAsset.page - 1) * state.operatorAsset.pageSize;
+  return filteredOperatorAssets().slice(start, start + state.operatorAsset.pageSize);
+}
+
+function publicOperatorAssetTable() {
+  const rows = pagedOperatorAssets();
+  return `<div class="table-wrap"><table><thead><tr><th>算子名称</th><th>分类</th><th>适配芯片</th><th>更新日期</th><th>操作</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.name}</td><td>${row.category}</td><td>${row.chips}</td><td>${row.updatedAt}</td><td><button class="btn text" onclick="toast('详情页暂未配置')">详情</button></td></tr>`).join("") || `<tr><td colspan="5"><div class="empty">暂无匹配的算子</div></td></tr>`}</tbody></table></div>`;
+}
+
+function privateOperatorAssetTable(scope) {
+  const rows = pagedOperatorAssets();
+  const canManage = scope === "mine" || (scope === "team" && canShowTeamManagement());
+  return `<div class="table-wrap"><table><thead><tr><th>算子名称</th><th>描述</th><th>所有者</th><th>最新版本</th><th>标签</th><th>操作</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.name}</td><td>${row.description}</td><td>${row.owner}</td><td>${row.version}</td><td>${row.tags}</td><td><button class="btn text" onclick="toast('详情页暂未配置')">查看</button>${canManage ? `<button class="btn text" onclick="confirmBox('删除后该算子将无法继续用于新建验证任务，确认删除吗？','deleteOperatorAsset(\\'${row.id}\\')')">删除</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="6"><div class="empty">暂无匹配的算子</div></td></tr>`}</tbody></table></div>`;
+}
+
+function operatorAssetPagination() {
+  const total = filteredOperatorAssets().length;
+  const totalPages = Math.max(1, Math.ceil(total / state.operatorAsset.pageSize));
+  return `<div class="pagination"><button class="btn" ${state.operatorAsset.page <= 1 ? "disabled" : ""} onclick="setOperatorAssetPage(${state.operatorAsset.page - 1})">上一页</button><span>第 ${state.operatorAsset.page} / ${totalPages} 页</span><button class="btn" ${state.operatorAsset.page >= totalPages ? "disabled" : ""} onclick="setOperatorAssetPage(${state.operatorAsset.page + 1})">下一页</button><select onchange="setOperatorAssetPageSize(this.value)">${filterOptions(["10", "20", "50"], String(state.operatorAsset.pageSize))}</select><span>条 / 页</span><input type="number" min="1" max="${totalPages}" value="${state.operatorAsset.page}" onkeydown="if(event.key==='Enter'){event.preventDefault();setOperatorAssetPage(this.value)}" /><button class="btn" onclick="setOperatorAssetPage(this.previousElementSibling.value)">跳转</button></div>`;
+}
+
+function setOperatorAssetScope(scope) {
+  state.operatorAsset.scope = scope;
+  state.operatorAsset.queryDraft = "";
+  state.operatorAsset.query = "";
+  state.operatorAsset.category = "全部分类";
+  state.operatorAsset.page = 1;
+  render();
+}
+
+function setOperatorAssetFilter(key, value) {
+  state.operatorAsset[key] = value;
+  state.operatorAsset.page = 1;
+  render();
+}
+
+function applyOperatorAssetSearch() {
+  state.operatorAsset.query = state.operatorAsset.queryDraft.trim();
+  state.operatorAsset.page = 1;
+  render();
+}
+
+function setOperatorAssetPage(page) {
+  state.operatorAsset.page = Number(page) || 1;
+  render();
+}
+
+function setOperatorAssetPageSize(size) {
+  state.operatorAsset.pageSize = Number(size) || 10;
+  state.operatorAsset.page = 1;
+  render();
+}
+
+function deleteOperatorAsset(id) {
+  const index = privateOperatorResources.findIndex((item) => item.id === id);
+  if (index >= 0) privateOperatorResources.splice(index, 1);
+  closeModal();
+  toast("算子已删除");
+  render();
 }
 
 function imageAssetScopeOptions() {
@@ -2331,7 +3001,7 @@ function imagesAssetPage() {
 
 function imageAssetFilters() {
   const filters = state.imageAsset;
-  return `<div class="filters"><select onchange="setImageAssetFilter('framework',this.value)">${filterOptions(imageFrameworkOptions(), filters.framework)}</select><div class="input-group task-search"><input value="${filters.queryDraft}" oninput="state.imageAsset.queryDraft=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();applyImageAssetSearch()}" placeholder="搜索镜像名称" /><button class="btn" type="button" onclick="applyImageAssetSearch()">搜索</button></div></div>`;
+  return `<div class="filters"><div class="input-group task-search"><input value="${filters.queryDraft}" oninput="state.imageAsset.queryDraft=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();applyImageAssetSearch()}" placeholder="搜索镜像名称" /><button class="btn" type="button" onclick="applyImageAssetSearch()">搜索</button></div><select onchange="setImageAssetFilter('framework',this.value)">${filterOptions(imageFrameworkOptions(), filters.framework)}</select></div>`;
 }
 
 function imageFrameworkOptions() {
@@ -2470,7 +3140,9 @@ function deleteImageAsset(id) {
 }
 
 function assetsPage() {
+  if (state.assetType === "models") return modelsAssetPage();
   if (state.assetType === "images") return imagesAssetPage();
+  if (state.assetType === "operators") return operatorsAssetPage();
   normalizeAssetScope();
   normalizeAssetFilters();
   const assetName = assetDisplayName();
@@ -2489,7 +3161,7 @@ function assetsPage() {
 }
 
 function assetTable() {
-  const scopeText = { public: "公共资源", mine: "我的资源", team: "团队资源" }[state.assetScope];
+  const scopeText = { public: "预置资源", mine: "我的资源", team: "团队资源" }[state.assetScope];
   const canShare = state.workspace === "personal" && state.assetScope === "mine";
   const rows = filteredAssetRows();
   return `<div class="table-wrap"><table id="asset-table"><thead><tr><th>资产名称</th><th>类型</th><th>来源</th><th>审核状态</th><th>标签</th><th>操作</th></tr></thead>
@@ -2613,7 +3285,7 @@ function assetShareModal() {
 }
 
 function assetReviewPage() {
-  return shell(`${pageHead("资产审核状态", "展示草稿、待审核、审核通过、审核驳回等状态。", `<button class="btn" onclick="setRoute('assets')">返回资产</button>`)}<div class="card"><table><tr><th>状态</th><th>说明</th><th>可见范围</th></tr><tr><td>${statusBadge("待审核")}</td><td>已提交审核，等待管理员或系统审核。</td><td>仅个人</td></tr><tr><td>${statusBadge("已生成")}</td><td>审核通过，可进入指定可见范围。</td><td>指定团队 / 公共资产池</td></tr><tr><td>${statusBadge("失败")}</td><td>审核驳回，需要展示驳回原因。</td><td>不可上架</td></tr></table></div>`, "assets");
+  return shell(`${pageHead("资产审核状态", "展示草稿、待审核、审核通过、审核驳回等状态。", `<button class="btn" onclick="setRoute('assets')">返回资产</button>`)}<div class="card"><table><tr><th>状态</th><th>说明</th><th>可见范围</th></tr><tr><td>${statusBadge("待审核")}</td><td>已提交审核，等待管理员或系统审核。</td><td>仅个人</td></tr><tr><td>${statusBadge("已生成")}</td><td>审核通过，可进入指定可见范围。</td><td>指定团队 / 预置资产池</td></tr><tr><td>${statusBadge("失败")}</td><td>审核驳回，需要展示驳回原因。</td><td>不可上架</td></tr></table></div>`, "assets");
 }
 
 function accountPage() {
@@ -2710,6 +3382,7 @@ function render() {
     "assets-models": assetsPage,
     "assets-images": assetsPage,
     "assets-operators": assetsPage,
+    "preset-model-detail": presetModelDetailPage,
     "asset-detail": assetDetailPage,
     "asset-review": assetReviewPage,
     account: accountPage,
@@ -2790,6 +3463,25 @@ window.applyAssetSearch = applyAssetSearch;
 window.setComputeFilter = setComputeFilter;
 window.applyComputeSearch = applyComputeSearch;
 window.showTeamAssets = showTeamAssets;
+window.setModelAssetScope = setModelAssetScope;
+window.setModelAssetFilter = setModelAssetFilter;
+window.applyModelAssetSearch = applyModelAssetSearch;
+window.toggleModelParamPanel = toggleModelParamPanel;
+window.setModelParamDraft = setModelParamDraft;
+window.applyModelParamRange = applyModelParamRange;
+window.resetModelParamRange = resetModelParamRange;
+window.setModelAssetPage = setModelAssetPage;
+window.setModelAssetPageSize = setModelAssetPageSize;
+window.openModelCreateModal = openModelCreateModal;
+window.submitModelCreate = submitModelCreate;
+window.deleteModelAsset = deleteModelAsset;
+window.openPresetModelDetail = openPresetModelDetail;
+window.setOperatorAssetScope = setOperatorAssetScope;
+window.setOperatorAssetFilter = setOperatorAssetFilter;
+window.applyOperatorAssetSearch = applyOperatorAssetSearch;
+window.setOperatorAssetPage = setOperatorAssetPage;
+window.setOperatorAssetPageSize = setOperatorAssetPageSize;
+window.deleteOperatorAsset = deleteOperatorAsset;
 window.setImageAssetScope = setImageAssetScope;
 window.setImageAssetFilter = setImageAssetFilter;
 window.applyImageAssetSearch = applyImageAssetSearch;

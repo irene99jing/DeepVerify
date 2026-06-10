@@ -336,6 +336,17 @@ a {
   box-shadow: 0 1px 3px rgba(31, 42, 55, 0.08);
 }
 
+.asset-scope-tabs {
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+}
+
+.asset-scope-tabs button {
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+
 .form {
   display: grid;
   gap: 14px;
@@ -1364,6 +1375,353 @@ th {
 
 .filters .task-search input {
   min-width: 0;
+}
+
+.model-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.model-asset-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 238px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 18px 22px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.035);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.model-asset-card:hover {
+  border-color: #9fc7ff;
+  box-shadow: 0 14px 30px rgba(30, 90, 180, 0.1);
+  transform: translateY(-1px);
+}
+
+.model-card-main {
+  flex: 1;
+}
+
+.model-asset-card h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.model-alias {
+  margin-top: 8px;
+  color: #9aa5b4;
+  font-size: 15px;
+}
+
+.model-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 10px;
+}
+
+.model-chips span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: #eef3f7;
+  color: #334155;
+  font-size: 14px;
+}
+
+.model-chips span:first-child {
+  background: #dff8f7;
+  color: #067a7c;
+}
+
+.model-chips span:nth-child(2) {
+  background: #f3ecff;
+  color: #7c3cff;
+}
+
+.model-asset-card p {
+  display: -webkit-box;
+  min-height: 72px;
+  margin: 0 0 18px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.65;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.model-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 28px;
+  color: #8a96a8;
+  font-size: 14px;
+}
+
+.model-card-foot span + span {
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+
+.model-card-foot .btn {
+  margin-left: auto;
+}
+
+.model-hot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 0 8px 0 10px;
+  background: linear-gradient(135deg, #6857ff, #944dff);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(104, 87, 255, 0.22);
+}
+
+.model-hot::before {
+  content: "●";
+  margin-right: 6px;
+  font-size: 10px;
+}
+
+.param-filter {
+  position: relative;
+  min-width: 246px;
+}
+
+.param-trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.param-trigger.active,
+.param-trigger:hover {
+  border-color: var(--primary);
+}
+
+.param-trigger span:first-child {
+  color: var(--text);
+}
+
+.param-trigger strong {
+  flex: 1;
+  color: var(--muted);
+  font-weight: 500;
+  text-align: right;
+}
+
+.param-trigger em {
+  width: 14px;
+  color: var(--text);
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+}
+
+.param-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 316px;
+  max-width: calc(100vw - 48px);
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+}
+
+.param-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.param-inputs label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.param-inputs input {
+  min-width: 0;
+  width: 100%;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 30px 0 10px;
+}
+
+.param-inputs label span {
+  position: absolute;
+  right: 10px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.param-sliders {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.param-sliders input {
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--primary);
+}
+
+.param-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.preset-model-detail {
+  min-height: calc(100vh - 48px);
+  background: #fff;
+  color: var(--text);
+}
+
+.detail-back {
+  float: left;
+  margin: 4px 14px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 34px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.preset-model-hero {
+  padding: 0 0 18px;
+}
+
+.preset-model-hero h1 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.preset-model-hero p {
+  margin: 8px 0 16px;
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.detail-chips {
+  margin: 0 0 14px;
+}
+
+.preset-model-source {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #9aa5b4;
+  font-size: 15px;
+}
+
+.preset-model-source span + span {
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+
+.preset-detail-tabs {
+  display: flex;
+  margin-top: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.preset-detail-tabs button {
+  padding: 16px 24px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.preset-detail-tabs button.active {
+  border-bottom-color: var(--primary);
+}
+
+.preset-model-intro {
+  padding: 30px 24px 42px;
+  border-left: 1px solid var(--line);
+  font-size: 18px;
+  line-height: 1.85;
+}
+
+.preset-model-intro h2 {
+  margin: 0 0 14px;
+  font-size: 26px;
+}
+
+.preset-model-intro p {
+  margin: 0 0 18px;
+  max-width: 1480px;
+}
+
+.preset-model-intro a {
+  color: var(--primary);
+}
+
+@media (max-width: 980px) {
+  .model-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preset-model-hero h1 {
+    font-size: 28px;
+  }
+
+  .preset-model-intro {
+    padding-left: 12px;
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 981px) and (max-width: 1380px) {
+  .model-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .pagination {
