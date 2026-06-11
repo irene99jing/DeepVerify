@@ -352,6 +352,88 @@ a {
   gap: 14px;
 }
 
+.account-page .form,
+.team-page .form {
+  align-content: start;
+}
+
+.account-page .form > .btn,
+.team-page .form > .btn {
+  width: auto;
+  height: 38px;
+  min-height: 38px;
+  justify-self: center;
+}
+
+.team-card-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.team-card-actions .btn {
+  width: auto;
+  height: 38px;
+  min-height: 38px;
+}
+
+.team-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+  grid-template-areas:
+    "info sharing"
+    "members invite";
+  gap: 16px;
+  align-items: stretch;
+}
+
+.team-info-card {
+  grid-area: info;
+}
+
+.team-sharing-card {
+  grid-area: sharing;
+}
+
+.team-members-card {
+  grid-area: members;
+}
+
+.team-invite-card {
+  grid-area: invite;
+}
+
+.team-layout > .card {
+  min-width: 0;
+}
+
+.team-info-card .form {
+  gap: 12px;
+}
+
+.team-sharing-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.team-sharing-card .team-card-actions {
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.team-invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.team-invite-actions .btn {
+  width: auto;
+  height: 38px;
+  min-height: 38px;
+}
+
 .field {
   display: grid;
   gap: 7px;
@@ -1277,6 +1359,85 @@ a {
   font-size: 28px;
 }
 
+.home-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "ranking space"
+    "news tasks";
+  align-items: start;
+  gap: 16px;
+}
+
+.home-dashboard > .card {
+  min-width: 0;
+  height: 100%;
+}
+
+.home-ranking-card {
+  grid-area: ranking;
+}
+
+.home-space-card {
+  grid-area: space;
+}
+
+.home-news-card {
+  grid-area: news;
+}
+
+.home-task-card {
+  grid-area: tasks;
+}
+
+.home-ranking-card .segmented {
+  margin-bottom: 12px;
+  overflow-x: auto;
+}
+
+.home-ranking-card .segmented button {
+  min-width: max-content;
+}
+
+.home-news-card {
+  overflow: hidden;
+}
+
+.home-news-card table {
+  table-layout: fixed;
+}
+
+.home-news-card th,
+.home-news-card td,
+.home-space-card th,
+.home-space-card td {
+  overflow-wrap: anywhere;
+}
+
+.home-task-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-task-stat {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.home-task-stat strong {
+  font-size: 26px;
+}
+
+.home-task-stat span:last-child {
+  overflow-wrap: anywhere;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -1375,6 +1536,21 @@ th {
 
 .filters .task-search input {
   min-width: 0;
+}
+
+.model-asset-filters .task-search {
+  min-width: 380px;
+}
+
+.model-asset-filters .task-search input {
+  min-width: 300px;
+}
+
+.operator-asset-filters .task-search {
+  flex: 0 1 380px;
+  width: 380px;
+  max-width: 100%;
+  min-width: 320px;
 }
 
 .model-card-grid {
@@ -1590,19 +1766,132 @@ th {
 }
 
 .param-sliders {
-  display: grid;
-  gap: 8px;
+  position: relative;
+  height: 24px;
   margin: 14px 0;
 }
 
-.param-sliders input {
-  min-width: 0;
+.param-range-track {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  right: 3px;
+  left: 3px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #d6dce5 0 var(--param-min),
+    var(--primary) var(--param-min) var(--param-max),
+    #d6dce5 var(--param-max) 100%
+  );
+}
+
+.param-range-thumb {
+  position: absolute;
+  z-index: 2;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: grab;
+  box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(29, 78, 216, 0.28);
+  touch-action: none;
+}
+
+.param-range-thumb:active {
+  cursor: grabbing;
+}
+
+.param-sliders[data-active-thumb="min"] .param-range-min,
+.param-sliders[data-active-thumb="max"] .param-range-max {
+  z-index: 4;
+}
+
+.param-range-thumb:focus-visible {
+  outline: 2px solid rgba(29, 78, 216, 0.35);
+  outline-offset: 2px;
+}
+
+/* Prevent legacy native range controls from creating a second visible track. */
+.param-sliders input[type="range"] {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   width: 100%;
-  height: auto;
+  height: 24px;
+  margin: 0;
   padding: 0;
   border: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: none;
   background: transparent;
-  accent-color: var(--primary);
+  box-shadow: none;
+  color: transparent;
+}
+
+.param-sliders input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.param-sliders input[type="range"]::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  background: var(--primary);
+  cursor: grab;
+  box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(29, 78, 216, 0.28);
+}
+
+.param-sliders input[type="range"]::-moz-range-track {
+  height: 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.param-sliders input[type="range"]::-moz-range-progress {
+  height: 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.param-sliders input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  pointer-events: auto;
+  background: var(--primary);
+  cursor: grab;
+  box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(29, 78, 216, 0.28);
+}
+
+.param-sliders input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid rgba(29, 78, 216, 0.35);
+  outline-offset: 2px;
+}
+
+.param-sliders input[type="range"]:focus-visible::-moz-range-thumb {
+  outline: 2px solid rgba(29, 78, 216, 0.35);
+  outline-offset: 2px;
 }
 
 .param-actions {
@@ -1704,8 +1993,33 @@ th {
 }
 
 @media (max-width: 980px) {
+  .team-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "info"
+      "sharing"
+      "members"
+      "invite";
+  }
+
+  .home-dashboard {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "ranking"
+      "space"
+      "news"
+      "tasks";
+  }
+
   .model-card-grid {
     grid-template-columns: 1fr;
+  }
+
+  .model-asset-filters .task-search,
+  .model-asset-filters .task-search input,
+  .operator-asset-filters .task-search {
+    min-width: 0;
+    width: 100%;
   }
 
   .preset-model-hero h1 {
@@ -1756,6 +2070,130 @@ th {
 .pagination .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.dataset-page-card {
+  min-width: 0;
+}
+
+.dataset-scope-tabs {
+  margin-bottom: 14px;
+}
+
+.dataset-filters {
+  align-items: stretch;
+  overflow: visible;
+}
+
+.dataset-filters .task-search,
+.dataset-filters .task-search input,
+.dataset-filters .task-search button {
+  height: 40px;
+}
+
+.dataset-filters .task-search {
+  flex: 0 1 380px;
+  width: 380px;
+  max-width: 100%;
+  min-width: 320px;
+}
+
+.dataset-table-wrap {
+  max-width: 100%;
+}
+
+.dataset-table {
+  width: 100%;
+}
+
+.dataset-table th,
+.dataset-table td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.dataset-name-link {
+  max-width: 100%;
+  padding: 0;
+  text-align: left;
+  white-space: normal;
+  font-weight: 700;
+}
+
+.dataset-id {
+  margin-top: 4px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.dataset-actions {
+  min-width: 150px;
+  white-space: nowrap;
+}
+
+.dataset-actions .btn {
+  padding: 4px 6px;
+}
+
+.danger-text {
+  color: #dc2626;
+}
+
+.dataset-detail-grid > .card:first-child {
+  grid-column: 1 / -1;
+}
+
+.dataset-detail-grid table {
+  table-layout: fixed;
+}
+
+.dataset-detail-grid th,
+.dataset-detail-grid td {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .home-task-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dataset-filters > select,
+  .dataset-filters .task-search {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .dataset-scope-tabs {
+    display: flex;
+    width: 100%;
+  }
+
+  .dataset-scope-tabs button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .dataset-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dataset-detail-grid table,
+  .dataset-detail-grid tbody,
+  .dataset-detail-grid tr,
+  .dataset-detail-grid th,
+  .dataset-detail-grid td {
+    display: block;
+    width: 100%;
+  }
+
+  .dataset-detail-grid th {
+    padding-bottom: 4px;
+  }
+
+  .dataset-detail-grid td {
+    padding-top: 0;
+  }
 }
 
 .check-col {
